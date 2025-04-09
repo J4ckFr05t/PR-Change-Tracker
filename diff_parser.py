@@ -22,11 +22,15 @@ def parse_diff_by_commit(commits):
             else:
                 change_type = "modified"
 
+            # Flag to indicate this is a newly added file
+            is_new_file = file.is_added_file and len(removed) == 0 and len(added) > 0
+
             commit_entry["files_changed"].append({
                 "file_path": file.path,
                 "change_type": change_type,
                 "added_lines": added,
-                "removed_lines": removed
+                "removed_lines": removed,
+                "is_new_file": is_new_file
             })
 
         result.append(commit_entry)

@@ -44,15 +44,32 @@
         .modified-file { background: var(--modified); }
         .deleted-file { background: var(--deleted); }
 
-        textarea, input {
+        .info-note {
+            font-style: italic;
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+            border-radius: 4px;
+            color: var(--text);
+        }
+
+        .info-note.added-file { background: var(--added); }
+        .info-note.deleted-file { background: var(--deleted); }
+        .info-note.modified-file { background: var(--modified); }
+
+        textarea,
+        input[type="text"] {
             width: 100%;
             padding: 0.5rem;
             margin-top: 0.3rem;
-            background: #fff;
+            font-size: 1rem;
+            line-height: 1.5rem;
+            border: 1px solid #888;
+            border-radius: 4px;
+            box-sizing: border-box;
         }
 
         body.dark textarea,
-        body.dark input {
+        body.dark input[type="text"] {
             background: #2b2b2b;
             color: #eee;
             border: 1px solid #555;
@@ -116,13 +133,17 @@
                 {% for file in commit.files_changed %}
                     {% set file_class = (file.change_type ~ '-file') if file.change_type else '' %}
                     <div class="card {{ file_class }}">
-                        <label>Reason:</label>
-                        <input type="text" name="reason_display_{{ commit_idx }}_{{ loop.index0 }}" value="{{ commit.reason }}" readonly>
-
                         <label>File:</label>
                         <input type="text" name="file_{{ commit_idx }}_{{ loop.index0 }}" value="{{ file.file_path }}" readonly>
 
-                        {% if file.change_type != 'deleted' %}
+                        <label>Reason:</label>
+                        <input type="text" name="reason_display_{{ commit_idx }}_{{ loop.index0 }}" value="{{ commit.reason }}" readonly>
+
+                        {% if file.change_type == 'added' %}
+                            <div class="info-note added-file">[New file – content hidden]</div>
+                        {% elif file.change_type == 'deleted' %}
+                            <div class="info-note deleted-file">[File deleted]</div>
+                        {% else %}
                             <label>Added Lines:</label>
                             <textarea name="added_{{ commit_idx }}_{{ loop.index0 }}" rows="3">{{ file.added_lines | join('\n') }}</textarea>
 
