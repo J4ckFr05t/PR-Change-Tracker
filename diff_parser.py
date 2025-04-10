@@ -52,9 +52,5 @@ def parse_diff_by_commit(commits):
 
     # Sort based on custom priority
     exploded.sort(key=lambda e: change_type_priority.get(e['files_changed'][0]['change_type'], 99))
-
-    # Print few entries for verification
-    for e in exploded:
-        print(entry["files_changed"][0]['change_type'])
-
+    
     return exploded
