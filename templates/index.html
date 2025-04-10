@@ -126,31 +126,36 @@
 
             {% for commit in summary.commits %}
                 {% set commit_idx = loop.index0 %}
-                <input type="hidden" name="commit_msg_{{ commit_idx }}" value="{{ commit.message }}">
-                <input type="hidden" name="file_count_{{ commit_idx }}" value="{{ commit.files_changed|length }}">
+                <div class="card">
+                    <label>Commit Message:</label>
+                    <p>{{ commit.message }}</p>
 
-                <label>Reason:</label>
-                <input type="text" name="reason_{{ commit_idx }}" value="{{ commit.reason or '' }}">
+                    <label>Reason for Change:</label>
+                    <input type="text" name="reason_{{ commit_idx }}" value="{{ commit.reason or '' }}">
 
-                {% for file in commit.files_changed %}
-                    {% set file_class = (file.change_type ~ '-file') if file.change_type else '' %}
-                    <div class="card {{ file_class }}">
-                        <label>File:</label>
-                        <input type="text" name="file_{{ commit_idx }}_{{ loop.index0 }}" value="{{ file.file_path }}" readonly>
+                    <input type="hidden" name="commit_msg_{{ commit_idx }}" value="{{ commit.message }}">
+                    <input type="hidden" name="file_count_{{ commit_idx }}" value="{{ commit.files_changed|length }}">
 
-                        {% if file.change_type == 'added' %}
-                            <div class="info-note added-file">[New file – content hidden]</div>
-                        {% elif file.change_type == 'deleted' %}
-                            <div class="info-note deleted-file">[File deleted]</div>
-                        {% else %}
-                            <label>Added Lines:</label>
-                            <textarea name="added_{{ commit_idx }}_{{ loop.index0 }}" rows="3">{{ file.added_lines | join('\n') }}</textarea>
+                    {% for file in commit.files_changed %}
+                        {% set file_class = (file.change_type ~ '-file') if file.change_type else '' %}
+                        <div class="card {{ file_class }}">
+                            <label>File:</label>
+                            <input type="text" name="file_{{ commit_idx }}_{{ loop.index0 }}" value="{{ file.file_path }}" readonly>
 
-                            <label>Removed Lines:</label>
-                            <textarea name="removed_{{ commit_idx }}_{{ loop.index0 }}" rows="3">{{ file.removed_lines | join('\n') }}</textarea>
-                        {% endif %}
-                    </div>
-                {% endfor %}
+                            {% if file.change_type == 'added' %}
+                                <div class="info-note added-file">[New file – content hidden]</div>
+                            {% elif file.change_type == 'deleted' %}
+                                <div class="info-note deleted-file">[File deleted]</div>
+                            {% else %}
+                                <label>Added Lines:</label>
+                                <textarea name="added_{{ commit_idx }}_{{ loop.index0 }}" rows="3">{{ file.added_lines | join('\n') }}</textarea>
+
+                                <label>Removed Lines:</label>
+                                <textarea name="removed_{{ commit_idx }}_{{ loop.index0 }}" rows="3">{{ file.removed_lines | join('\n') }}</textarea>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
             {% endfor %}
 
             <button type="submit">💾 Save to JSON</button>
@@ -170,5 +175,15 @@
             }
         })();
     </script>
+    {% if saved %}
+    <script>
+        alert("✅ Summary saved successfully!");
+        window.location.href = "/";
+    </script>
+    {% elif error %}
+    <script>
+        alert("❌ Error: {{ error }}");
+    </script>
+    {% endif %}
 </body>
 </html>

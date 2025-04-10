@@ -15,6 +15,7 @@ github_token = os.getenv("GITHUB_API_KEY")
 def index():
     summary = None
     error = None
+    action = None  # ✅ Prevent UnboundLocalError
 
     if request.method == "POST":
         action = request.form.get("action")
@@ -79,7 +80,9 @@ def index():
         except Exception as e:
             error = str(e)
 
-    return render_template("index.html", summary=summary, error=error)
+    # ✅ Safely pass the 'saved' flag to template
+    saved = action == "save" and not error
+    return render_template("index.html", summary=summary, error=error, saved=saved)
 
 
 def parse_pr_url(url):
