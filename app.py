@@ -10,6 +10,7 @@ app = Flask(__name__)
 load_dotenv()
 github_token = os.getenv("GITHUB_API_KEY")
 
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     summary = None
@@ -49,8 +50,8 @@ def index():
 
                     for j in range(file_count):
                         path = request.form.get(f"file_{i}_{j}")
-                        added = request.form.get(f"added_{i}_{j}").split("\n")
-                        removed = request.form.get(f"removed_{i}_{j}").split("\n")
+                        added = request.form.get(f"added_{i}_{j}", "").split("\n")
+                        removed = request.form.get(f"removed_{i}_{j}", "").split("\n")
                         files.append({
                             "file_path": path,
                             "added_lines": added,
@@ -80,11 +81,13 @@ def index():
 
     return render_template("index.html", summary=summary, error=error)
 
+
 def parse_pr_url(url):
     parts = url.strip().split("/")
     repo = "/".join(parts[3:5])
     pr_number = int(parts[-1])
     return repo, pr_number
 
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000,debug=True)
+    app.run(host="0.0.0.0", port=5001, debug=True)

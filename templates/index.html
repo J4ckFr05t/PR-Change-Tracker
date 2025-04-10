@@ -127,17 +127,16 @@
             {% for commit in summary.commits %}
                 {% set commit_idx = loop.index0 %}
                 <input type="hidden" name="commit_msg_{{ commit_idx }}" value="{{ commit.message }}">
-                <input type="hidden" name="reason_{{ commit_idx }}" value="{{ commit.reason }}">
                 <input type="hidden" name="file_count_{{ commit_idx }}" value="{{ commit.files_changed|length }}">
+
+                <label>Reason:</label>
+                <input type="text" name="reason_{{ commit_idx }}" value="{{ commit.reason or '' }}">
 
                 {% for file in commit.files_changed %}
                     {% set file_class = (file.change_type ~ '-file') if file.change_type else '' %}
                     <div class="card {{ file_class }}">
                         <label>File:</label>
                         <input type="text" name="file_{{ commit_idx }}_{{ loop.index0 }}" value="{{ file.file_path }}" readonly>
-
-                        <label>Reason:</label>
-                        <input type="text" name="reason_display_{{ commit_idx }}_{{ loop.index0 }}" value="{{ commit.reason }}" readonly>
 
                         {% if file.change_type == 'added' %}
                             <div class="info-note added-file">[New file – content hidden]</div>
