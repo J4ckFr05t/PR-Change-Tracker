@@ -1,5 +1,6 @@
 from unidiff import PatchSet
 from io import StringIO
+import json
 
 def parse_diff_by_commit(commits):
     result = []
@@ -35,4 +36,25 @@ def parse_diff_by_commit(commits):
 
         result.append(commit_entry)
 
-    return result
+    change_type_priority = {
+        'deleted': 0,
+        'added': 1,
+        'modified': 2
+    }
+
+    exploded = []
+    for entry in result:
+        for file_change in entry.get('files_changed', []):
+            exploded.append({
+                'message': entry.get('message'),
+                'files_changed': [file_change]  # keep as single-element list
+            })
+
+    # Sort based on custom priority
+    exploded.sort(key=lambda e: change_type_priority.get(e['files_changed'][0]['change_type'], 99))
+
+    # Print few entries for verification
+    for e in exploded:
+        print(entry["files_changed"][0]['change_type'])
+
+    return exploded
