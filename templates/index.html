@@ -131,7 +131,7 @@
                     <p>{{ commit.message }}</p>
 
                     <label>Reason for Change:</label>
-                    <input type="text" name="reason_{{ commit_idx }}" value="{{ commit.reason or '' }}">
+                    <input type="text" name="reason_{{ commit_idx }}" value="{{ commit.reason or commit.summary }}">
 
                     <input type="hidden" name="commit_msg_{{ commit_idx }}" value="{{ commit.message }}">
                     <input type="hidden" name="file_count_{{ commit_idx }}" value="{{ commit.files_changed|length }}">

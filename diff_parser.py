@@ -2,7 +2,36 @@ from unidiff import PatchSet
 from io import StringIO
 import json
 import copy
+from openai import OpenAI
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
+# Initialize OpenAI client
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # Replace with your actual API key
+
+# Function to call ChatGPT and generate summary
+def summarize_change(message, added_lines, removed_lines):
+    prompt = (
+        "Here is a code change. Based on the added and removed lines, and the commit messages, "
+        "provide a brief natural language description of what was changed and why. Be concise but informative.\n\n"
+        f"Commit message(s): {message}\n\n"
+        f"Added lines:\n" + "\n".join(added_lines or []) + "\n\n" +
+        f"Removed lines:\n" + "\n".join(removed_lines or [])
+    )
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",  # You can use "gpt-3.5-turbo" if preferred
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            max_tokens=200
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"Error generating summary: {e}"
+
+# Group changes by file path
 def regroup_by_file_path(data, message_separator=" || ", line_separator="---"):
     grouped = {}
 
@@ -13,7 +42,7 @@ def regroup_by_file_path(data, message_separator=" || ", line_separator="---"):
             if path not in grouped:
                 grouped[path] = {
                     "message": message,
-                    "files_changed": [{
+                    "files_changed": [ {
                         "file_path": path,
                         "change_type": file["change_type"],
                         "is_new_file": file["is_new_file"],
@@ -35,6 +64,7 @@ def regroup_by_file_path(data, message_separator=" || ", line_separator="---"):
 
     return list(grouped.values())
 
+# Main parsing function
 def parse_diff_by_commit(commits):
     result = []
 
@@ -56,7 +86,6 @@ def parse_diff_by_commit(commits):
             else:
                 change_type = "modified"
 
-            # Flag to indicate this is a newly added file
             is_new_file = file.is_added_file and len(removed) == 0 and len(added) > 0
 
             commit_entry["files_changed"].append({
@@ -69,12 +98,7 @@ def parse_diff_by_commit(commits):
 
         result.append(commit_entry)
 
-    change_type_priority = {
-        'deleted': 0,
-        'added': 1,
-        'modified': 2
-    }
-
+    # Flatten to per-file level
     exploded = []
     for entry in result:
         for file_change in entry.get('files_changed', []):
@@ -84,8 +108,23 @@ def parse_diff_by_commit(commits):
             })
 
     # Sort based on custom priority
+    change_type_priority = {
+        'deleted': 0,
+        'added': 1,
+        'modified': 2
+    }
     exploded.sort(key=lambda e: change_type_priority.get(e['files_changed'][0]['change_type'], 99))
-    
+
+    # Group by file path
     grouped_data = regroup_by_file_path(exploded)
+
+    # Add ChatGPT summaries
+    for item in grouped_data:
+        file_change = item["files_changed"][0]
+        item["summary"] = summarize_change(
+            message=item["message"],
+            added_lines=file_change["added_lines"],
+            removed_lines=file_change["removed_lines"]
+        )
 
     return grouped_data
