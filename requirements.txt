@@ -3,3 +3,4 @@ PyGithub
 unidiff
 requests
 dotenv
+openai
