@@ -64,7 +64,7 @@
             font-size: 1rem;
             line-height: 1.5rem;
             border: 1px solid #888;
-            border-radius: 4px;
+            border-radius: 25px;
             box-sizing: border-box;
         }
 
@@ -114,17 +114,26 @@
             font-size: 3rem;
             margin-bottom: 1.5rem;
         }
+
+        .hidden-submit {
+            visibility: hidden;
+            height: 0;
+            width: 0;
+            padding: 0;
+            margin: 0;
+            border: none;
+        }
     </style>
 </head>
 <body class="dark">
-    <button class="toggle-btn" onclick="toggleDarkMode()">🌓 Toggle Dark Mode</button>
+    <button class="toggle-btn" onclick="toggleDarkMode()">🌓</button>
 
     {% if not summary %}
     <div class="center-screen">
         <h1 class="title-large">DiffSage</h1>
         <form method="POST">
-            <input type="text" name="pr_url" placeholder="Enter PR URL" required size="80">
-            <button type="submit" name="action" value="analyze">Analyze PR</button>
+            <input type="text" name="pr_url" placeholder="Enter PR URL" required size="80" onkeydown="if(event.key === 'Enter'){ this.form.submit(); }">
+            <button type="submit" name="action" value="analyze" class="hidden-submit">Analyze</button>
         </form>
         {% if error %}
             <p style="color: red;">{{ error }}</p>
