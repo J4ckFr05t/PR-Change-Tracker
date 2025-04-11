@@ -1,6 +1,39 @@
 from unidiff import PatchSet
 from io import StringIO
 import json
+import copy
+
+def regroup_by_file_path(data, message_separator=" || ", line_separator="---"):
+    grouped = {}
+
+    for entry in data:
+        message = entry["message"]
+        for file in entry["files_changed"]:
+            path = file["file_path"]
+            if path not in grouped:
+                grouped[path] = {
+                    "message": message,
+                    "files_changed": [{
+                        "file_path": path,
+                        "change_type": file["change_type"],
+                        "is_new_file": file["is_new_file"],
+                        "added_lines": copy.deepcopy(file["added_lines"]),
+                        "removed_lines": copy.deepcopy(file["removed_lines"])
+                    }]
+                }
+            else:
+                grouped[path]["message"] += message_separator + message
+                file_changed = grouped[path]["files_changed"][0]
+
+                if file_changed["added_lines"] and file["added_lines"]:
+                    file_changed["added_lines"].append(line_separator)
+                file_changed["added_lines"].extend(file["added_lines"])
+
+                if file_changed["removed_lines"] and file["removed_lines"]:
+                    file_changed["removed_lines"].append(line_separator)
+                file_changed["removed_lines"].extend(file["removed_lines"])
+
+    return list(grouped.values())
 
 def parse_diff_by_commit(commits):
     result = []
@@ -53,4 +86,6 @@ def parse_diff_by_commit(commits):
     # Sort based on custom priority
     exploded.sort(key=lambda e: change_type_priority.get(e['files_changed'][0]['change_type'], 99))
     
-    return exploded
+    grouped_data = regroup_by_file_path(exploded)
+
+    return grouped_data
