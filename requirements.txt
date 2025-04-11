@@ -5,3 +5,4 @@ requests
 dotenv
 openai
 xlsxwriter
+pandas
