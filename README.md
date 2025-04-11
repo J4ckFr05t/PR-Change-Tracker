@@ -4,6 +4,15 @@
 
 ---
 
+## 🖼️ UI Preview
+
+Here’s a snapshot of the initial DiffSage interface before analysis:
+
+![DiffSage Landing Page](static/landing-page.png)
+![DiffSage Landing Page](static/analyzer.png)
+
+---
+
 ## 🚀 Features
 
 - 🔗 Input any **GitHub Pull Request URL**
@@ -69,7 +78,7 @@ pip install -r requirements.txt
 python app.py
 ```
 
-App runs at: [http://localhost:5001](http://localhost:5001)
+App runs at: [http://localhost:3000](http://localhost:3000)
 
 ---
 
