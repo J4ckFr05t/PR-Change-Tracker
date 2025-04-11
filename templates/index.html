@@ -150,9 +150,9 @@
         <p style="color: red;">{{ error }}</p>
     {% endif %}
 
-    <form method="POST">
+    <!-- Excel Export Form -->
+    <form method="POST" action="/download_excel" id="excel-form">
         <input type="hidden" name="pr_url" value="{{ summary.metadata.url }}">
-        <input type="hidden" name="action" value="save">
         <input type="hidden" name="commit_count" value="{{ summary.commits|length }}">
 
         <div class="card">
@@ -196,7 +196,7 @@
             </div>
         {% endfor %}
 
-        <button type="submit">💾 Save to JSON</button>
+        <button type="submit">📥 Save to Excel</button>
     </form>
     {% endif %}
 

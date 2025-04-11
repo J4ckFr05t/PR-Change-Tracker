@@ -1,9 +1,12 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, send_file
 from github_utils import get_pr_data
 from diff_parser import parse_diff_by_commit
 from save_to_json import save_summary_to_json
 from dotenv import load_dotenv
 import os
+import re
+import io
+import pandas as pd
 
 app = Flask(__name__)
 
@@ -15,7 +18,7 @@ github_token = os.getenv("GITHUB_API_KEY")
 def index():
     summary = None
     error = None
-    action = None  # ✅ Prevent UnboundLocalError
+    action = None
 
     if request.method == "POST":
         action = request.form.get("action")
@@ -80,10 +83,53 @@ def index():
         except Exception as e:
             error = str(e)
 
-    # ✅ Safely pass the 'saved' flag to template
     saved = action == "save" and not error
     return render_template("index.html", summary=summary, error=error, saved=saved)
 
+@app.route("/download_excel", methods=["POST"])
+def download_excel():
+    try:
+        pr_url = request.form.get("pr_url", "")
+        count = int(request.form.get("commit_count"))
+        rows = []
+
+        # Extract repo and PR number from URL
+        match = re.search(r"github\.com/([^/]+/[^/]+)/pull/(\d+)", pr_url)
+        if match:
+            repo = match.group(1).replace("/", "_")  # e.g. openai_gym
+            pr_number = match.group(2)              # e.g. 234
+        else:
+            repo = "unknown_repo"
+            pr_number = "unknown_pr"
+
+        for i in range(count):
+            reason = request.form.get(f"reason_{i}")
+            file_count = int(request.form.get(f"file_count_{i}"))
+
+            for j in range(file_count):
+                file_name = request.form.get(f"file_{i}_{j}")
+                rows.append({
+                    "File Name": file_name,
+                    "Reason to Change": reason
+                })
+
+        df = pd.DataFrame(rows)
+
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+            df.to_excel(writer, index=False, sheet_name="Summary")
+
+        output.seek(0)
+        filename = f"diffsage_{repo}_pr{pr_number}.xlsx"
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name=filename,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+    except Exception as e:
+        return f"Error creating Excel file: {str(e)}", 500
 
 def parse_pr_url(url):
     parts = url.strip().split("/")
@@ -93,4 +139,4 @@ def parse_pr_url(url):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5001, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)

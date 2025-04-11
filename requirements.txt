@@ -4,3 +4,4 @@ unidiff
 requests
 dotenv
 openai
+xlsxwriter
