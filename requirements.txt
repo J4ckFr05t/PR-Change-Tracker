@@ -6,3 +6,4 @@ dotenv
 openai
 xlsxwriter
 pandas
+google-generativeai

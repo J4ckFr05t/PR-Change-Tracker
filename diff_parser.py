@@ -2,15 +2,21 @@ from unidiff import PatchSet
 from io import StringIO
 import json
 import copy
-from openai import OpenAI
+import google.generativeai as genai
 from dotenv import load_dotenv
 import os
 
+# Load environment variables
 load_dotenv()
-# Initialize OpenAI client
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # Replace with your actual API key
 
-# Function to call ChatGPT and generate summary
+# Initialize Gemini client with API Key
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+# Load the model (change to "gemini-1.5-pro" or "gemini-pro" depending on your access level)
+model = genai.GenerativeModel("gemini-1.5-pro")
+
+
+# Function to call Gemini and generate summary
 def summarize_change(message, added_lines, removed_lines):
     prompt = (
         "Here is a code change. Based on the added and removed lines, and the commit messages, "
@@ -21,15 +27,17 @@ def summarize_change(message, added_lines, removed_lines):
     )
 
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o",  # You can use "gpt-3.5-turbo" if preferred
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,
-            max_tokens=200
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.3,
+                max_output_tokens=200
+            )
         )
-        return response.choices[0].message.content.strip()
+        return response.text.strip()
     except Exception as e:
         return f"Error generating summary: {e}"
+
 
 # Group changes by file path
 def regroup_by_file_path(data, message_separator=" || ", line_separator="---"):
@@ -42,7 +50,7 @@ def regroup_by_file_path(data, message_separator=" || ", line_separator="---"):
             if path not in grouped:
                 grouped[path] = {
                     "message": message,
-                    "files_changed": [ {
+                    "files_changed": [{
                         "file_path": path,
                         "change_type": file["change_type"],
                         "is_new_file": file["is_new_file"],
@@ -63,6 +71,7 @@ def regroup_by_file_path(data, message_separator=" || ", line_separator="---"):
                 file_changed["removed_lines"].extend(file["removed_lines"])
 
     return list(grouped.values())
+
 
 # Main parsing function
 def parse_diff_by_commit(commits):
@@ -104,7 +113,7 @@ def parse_diff_by_commit(commits):
         for file_change in entry.get('files_changed', []):
             exploded.append({
                 'message': entry.get('message'),
-                'files_changed': [file_change]  # keep as single-element list
+                'files_changed': [file_change]  # single-element list
             })
 
     # Sort based on custom priority
@@ -118,7 +127,7 @@ def parse_diff_by_commit(commits):
     # Group by file path
     grouped_data = regroup_by_file_path(exploded)
 
-    # Add ChatGPT summaries
+    # Add Gemini summaries
     for item in grouped_data:
         file_change = item["files_changed"][0]
         item["summary"] = summarize_change(
