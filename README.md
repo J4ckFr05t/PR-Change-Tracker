@@ -49,7 +49,7 @@ cd diffsage
 
 ```env
 GITHUB_API_KEY=your_personal_access_token_here
-OPENAI_API_KEY=your_personal_access_token_here
+GOOGLE_API_KEY=your_personal_access_token_here
 ```
 
 > ✅ **Minimum Scope:** `public_repo` for public repos, or `repo` for private access.
