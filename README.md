@@ -10,7 +10,7 @@ Here’s a snapshot of the initial DiffSage interface before analysis:
 
 ![DiffSage Landing Page](static/landing-page.png)
 ![DiffSage Landing Page](static/analyzer.png)
-![DiffSage Demo](static/demo.mp4)
+![DiffSage Demo](static/demo.gif)
 
 ---
 
