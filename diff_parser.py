@@ -151,6 +151,9 @@ def parse_diff_by_commit(commits):
     # Group by file path
     grouped_data = regroup_by_file_path(exploded)
 
+    print("Number of Files to be process:", len(grouped_data))
+    file_count = len(grouped_data)
+
     # Add Gemini summaries
     for index, item in enumerate(grouped_data, start=1):
         file_change = item["files_changed"][0]
@@ -161,9 +164,9 @@ def parse_diff_by_commit(commits):
         )
 
         if index % 15 == 0:
-            print(f"Processed {index} items. Sleeping for 60 seconds to avoid hitting rate limits.")
+            print(f"Processed {index}/{file_count} items. Sleeping for 60 seconds to avoid hitting rate limits.")
             time.sleep(60)
         else:
-            print(f"Processed {index} items.")
+            print(f"Processed {index}/{file_count} items.")
 
     return grouped_data
