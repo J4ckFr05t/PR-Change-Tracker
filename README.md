@@ -6,10 +6,8 @@
 
 ## 🖼️ UI Preview
 
-Here’s a snapshot of the initial DiffSage interface before analysis:
+Here’s a demo:
 
-![DiffSage Landing Page](static/landing-page.png)
-![DiffSage Landing Page](static/analyzer.png)
 ![DiffSage Demo](static/demo.gif)
 
 ---
