@@ -99,6 +99,9 @@ def index():
 def task_status(task_id):
     task = AsyncResult(task_id, app=celery)
 
+    # print(f"Task {task_id} state: {task.state}")
+    # print("Meta:", task.info)
+
     if task.state == 'PENDING':
         response = {
             'state': task.state,

@@ -156,22 +156,21 @@ def parse_diff_by_commit(commits,  task=None):
 
     # Add Gemini summaries
     for index, item in enumerate(grouped_data, start=1):
+        if task:
+            progress_meta = {
+                'current': index,
+                'total': file_count,
+                'status': f'Processed {index} of {file_count}'
+            }
+            print("Progress update:", progress_meta)
+            task.update_state(state='PROGRESS', meta=progress_meta)
+
         file_change = item["files_changed"][0]
         item["summary"] = summarize_change_with_retry(
             message=item["message"],
             added_lines=file_change["added_lines"],
             removed_lines=file_change["removed_lines"]
         )
-
-        if task:
-            task.update_state(
-                state='PROGRESS',
-                meta={
-                    'current': index,
-                    'total': file_count,
-                    'status': f'Processed {index} of {file_count}'
-                }
-            )
 
         if index % 15 == 0:
             print(f"Processed {index}/{file_count} items. Sleeping for 60 seconds to avoid hitting rate limits.")
