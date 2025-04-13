@@ -37,7 +37,6 @@
             margin: 1rem 0;
             border-radius: 8px;
             box-shadow: 0 2px 5px var(--card-shadow);
-            transition: background 0.3s;
         }
 
         .added-file { background: var(--added); }
@@ -56,8 +55,7 @@
         .info-note.deleted-file { background: var(--deleted); }
         .info-note.modified-file { background: var(--modified); }
 
-        textarea,
-        input[type="text"] {
+        textarea, input[type="text"] {
             width: 100%;
             padding: 0.5rem;
             margin-top: 0.3rem;
@@ -68,8 +66,7 @@
             box-sizing: border-box;
         }
 
-        body.dark textarea,
-        body.dark input[type="text"] {
+        body.dark textarea, body.dark input[type="text"] {
             background: #2b2b2b;
             color: #eee;
             border: 1px solid #555;
@@ -124,7 +121,6 @@
             border: none;
         }
 
-        /* Loading Overlay */
         #processing-overlay {
             position: fixed;
             top: 0;
@@ -151,6 +147,22 @@
             margin-bottom: 1rem;
         }
 
+        #progress-bar {
+            height: 10px;
+            background-color: #00d1ff;
+            transition: width 0.5s ease-in-out;
+            width: 0%;
+        }
+
+        #progress-container {
+            width: 60%;
+            max-width: 400px;
+            background-color: #444;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -163,7 +175,7 @@
     {% if not summary %}
     <div class="center-screen">
         <h1 class="title-large">DiffSage</h1>
-        <form method="POST">
+        <form method="POST" id="analyze-form">
             <input type="text" name="pr_url" placeholder="Enter PR URL" required size="80" onkeydown="if(event.key === 'Enter'){ this.form.submit(); }">
             <button type="submit" name="action" value="analyze" class="hidden-submit">Analyze</button>
         </form>
@@ -173,10 +185,13 @@
     </div>
     {% else %}
     <h1>DiffSage</h1>
-    <form method="POST" class="top-form">
-        <input type="text" name="pr_url" value="{{ summary.metadata.url }}" required size="80">
-        <button type="submit" name="action" value="analyze">Analyze PR</button>
-    </form>
+
+    <!-- Back to Home Button -->
+    <div class="top-form">
+        <a href="/" style="text-decoration: none;">
+            <button type="button">🔙 Back to Home</button>
+        </a>
+    </div>
 
     {% if error %}
         <p style="color: red;">{{ error }}</p>
@@ -232,12 +247,14 @@
     </form>
     {% endif %}
 
-    <!-- Loading overlay -->
     <div id="processing-overlay">
         <div class="spinner"></div>
-        <p>Processing request...</p>
+        <p id="progress-text">Processing...</p>
+        <div id="progress-container">
+            <div id="progress-bar"></div>
+        </div>
     </div>
-
+    
     <script>
         function toggleDarkMode() {
             document.body.classList.toggle("dark");
@@ -251,34 +268,54 @@
             }
         })();
     
-        // Show overlay on form submit
         document.addEventListener("DOMContentLoaded", () => {
-            console.log("JavaScript loaded - attaching submit listener");
-    
-            document.querySelectorAll("form").forEach(form => {
-                form.addEventListener("submit", (e) => {
-                    const overlay = document.getElementById("processing-overlay");
-                    if (overlay) {
-                        overlay.style.display = "flex";
-                        console.log("Overlay shown!");
-                    } else {
-                        console.log("Overlay element not found.");
-                    }
+            const analyzeForm = document.getElementById("analyze-form");
+            const overlay = document.getElementById("processing-overlay");
+            if (analyzeForm && overlay) {
+                analyzeForm.addEventListener("submit", () => {
+                    overlay.style.display = "flex";
                 });
-            });
+            }
         });
     </script>
     
-
-    {% if saved %}
+    {% if task_id %}
     <script>
-        alert("✅ Summary saved successfully!");
-        window.location.href = "/";
-    </script>
-    {% elif error %}
-    <script>
-        alert("❌ Error: {{ error }}");
+        document.addEventListener("DOMContentLoaded", () => {
+            const overlay = document.getElementById("processing-overlay");
+            if (overlay) overlay.style.display = "flex";
+    
+            const taskId = "{{ task_id }}";
+    
+            function checkStatus() {
+                fetch(`/task_status/${taskId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        const progressText = document.getElementById("progress-text");
+                        const progressBar = document.getElementById("progress-bar");
+    
+                        if (data.state === "SUCCESS") {
+                            window.location.href = `/result/${taskId}`;
+                        } else if (data.state === "FAILURE") {
+                            alert("❌ Task failed: " + (data.error || "unknown error"));
+                        } else {
+                            if (progressText && data.details) {
+                                progressText.textContent = data.details;
+                            }
+                            if (progressBar && data.progress !== undefined) {
+                                progressBar.style.width = `${data.progress}%`;
+                            }
+                            setTimeout(checkStatus, 1000);
+                        }
+                    })
+                    .catch(err => console.error("Progress check failed", err));
+            }
+    
+            checkStatus();
+        });
     </script>
     {% endif %}
-</body>
-</html>
+    
+    </body>
+    </html>
+    

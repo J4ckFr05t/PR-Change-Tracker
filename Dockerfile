@@ -1,18 +1,28 @@
-# Use official Python image
-FROM python:3.11-slim
+# Base image
+FROM python:3.10-slim
 
-# Set working directory inside container
+# Set environment
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+# Set working directory
 WORKDIR /app
 
-# Copy requirement list & install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential gcc curl libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy app code
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --upgrade pip
+RUN pip install -r requirements.txt
+
+# Copy app source code
 COPY . .
 
-# Expose the Flask port
-EXPOSE 5000
+# Expose Flask port
+EXPOSE 3000
 
-# Run Flask when the container starts
-CMD ["python", "app.py"]
+# Default command — overridden by docker-compose
+CMD ["flask", "run", "--host=0.0.0.0"]

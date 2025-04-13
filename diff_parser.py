@@ -98,7 +98,7 @@ def regroup_by_file_path(data, message_separator=" || ", line_separator="---"):
     return list(grouped.values())
 
 # Main parsing function
-def parse_diff_by_commit(commits):
+def parse_diff_by_commit(commits,  task=None):
     result = []
 
     for commit in commits:
@@ -156,6 +156,15 @@ def parse_diff_by_commit(commits):
 
     # Add Gemini summaries
     for index, item in enumerate(grouped_data, start=1):
+        if task:
+            progress_meta = {
+                'current': index,
+                'total': file_count,
+                'status': f'Processed {index} of {file_count}'
+            }
+            print("Progress update:", progress_meta)
+            task.update_state(state='PROGRESS', meta=progress_meta)
+
         file_change = item["files_changed"][0]
         item["summary"] = summarize_change_with_retry(
             message=item["message"],
