@@ -52,8 +52,6 @@ GITHUB_API_KEY=your_personal_access_token_here
 GOOGLE_API_KEY=your_personal_access_token_here
 ```
 
-> ✅ **Minimum Scope:** `public_repo` for public repos, or `repo` for private access.
-
 ---
 
 ### 3. Option A: Local Run (with Python)
@@ -75,6 +73,30 @@ pip install -r requirements.txt
 
 ```bash
 python app.py
+```
+
+#### Start the Redis
+Windows
+##### Installing via WSL (Windows Subsystem for Linux)
+```bash
+sudo apt update
+sudo apt install redis-server
+redis-server
+```
+
+macOS
+##### Installing via Homebrew
+```bash
+brew install redis
+brew services start redis
+```
+
+(Ubuntu/Debian)
+##### Installing via APT
+```bash
+sudo apt update
+sudo apt install redis-server
+sudo systemctl start redis
 ```
 
 #### Start the Celery Worker
