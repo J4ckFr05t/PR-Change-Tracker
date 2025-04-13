@@ -7,3 +7,5 @@ openai
 xlsxwriter
 pandas
 google-generativeai
+celery[redis]
+redis
