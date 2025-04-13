@@ -174,7 +174,7 @@
 
     {% if not summary %}
     <div class="center-screen">
-        <h1 class="title-large">DiffSage</h1>
+        <h1 class="title-large">Diff<span style="color: grey;">Sage</span></h1>
         <form method="POST" id="analyze-form">
             <input type="text" name="pr_url" placeholder="Enter PR URL" required size="80" onkeydown="if(event.key === 'Enter'){ this.form.submit(); }">
             <button type="submit" name="action" value="analyze" class="hidden-submit">Analyze</button>

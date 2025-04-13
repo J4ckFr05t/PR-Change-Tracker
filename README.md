@@ -151,6 +151,12 @@ DiffSage/
 
 ---
 
+## Common Mistake
+If you see the following, it likely means the .env file hasn’t been set up correctly.
+
+![alt text](static/common-error.png)
+---
+
 ## 👨‍💼 Author
 
 Built by J4ckFr05t.  
