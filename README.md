@@ -77,6 +77,12 @@ pip install -r requirements.txt
 python app.py
 ```
 
+#### Start the Celery Worker
+
+```bash
+celery -A celery_worker.celery worker --loglevel=info
+```
+
 App runs at: [http://localhost:3000](http://localhost:3000)
 
 ---
@@ -86,13 +92,7 @@ App runs at: [http://localhost:3000](http://localhost:3000)
 #### Build Docker image
 
 ```bash
-docker build -t diffsage .
-```
-
-#### Run the container
-
-```bash
-docker run -d -p 3000:3000 --name diffsage-container diffsage
+docker compose up -d --build
 ```
 
 > Visit the app at: [http://localhost:3000](http://localhost:3000)
@@ -113,16 +113,18 @@ docker run -d -p 3000:3000 --name diffsage-container diffsage
 ## 📆 Folder Structure
 
 ```
-.
-├── app.py                  # Main Flask app
-├── github_utils.py         # GitHub API interaction
-├── diff_parser.py          # Diff parsing logic
+DiffSage/
+├── app.py                 # Main Flask application
+├── celery_worker.py       # Celery worker setup
+├── tasks.py               # Celery task definitions
+├── requirements.txt       # Python dependencies
+├── Dockerfile             # Docker image configuration
+├── docker-compose.yml     # Multi-container orchestration
 ├── templates/
-│   └── index.html          # Jinja2 HTML template
-├── .env                    # GitHub API token
-├── Dockerfile              # Docker container definition
-├── requirements.txt        # Python dependencies
-└── README.md               # You're here
+│   └── index.html         # HTML template for the frontend
+├── static/                # Static files (CSS, JS, images)
+├── README.md              # Project documentation
+└── .env                   # Environment variables (optional)
 ```
 
 ---
