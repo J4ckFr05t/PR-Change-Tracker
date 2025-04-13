@@ -124,7 +124,6 @@
             border: none;
         }
 
-        /* Loading Overlay */
         #processing-overlay {
             position: fixed;
             top: 0;
@@ -163,7 +162,7 @@
     {% if not summary %}
     <div class="center-screen">
         <h1 class="title-large">DiffSage</h1>
-        <form method="POST">
+        <form method="POST" id="analyze-form">
             <input type="text" name="pr_url" placeholder="Enter PR URL" required size="80" onkeydown="if(event.key === 'Enter'){ this.form.submit(); }">
             <button type="submit" name="action" value="analyze" class="hidden-submit">Analyze</button>
         </form>
@@ -173,10 +172,13 @@
     </div>
     {% else %}
     <h1>DiffSage</h1>
-    <form method="POST" class="top-form">
-        <input type="text" name="pr_url" value="{{ summary.metadata.url }}" required size="80">
-        <button type="submit" name="action" value="analyze">Analyze PR</button>
-    </form>
+
+    <!-- Back to Home Button -->
+    <div class="top-form">
+        <a href="/" style="text-decoration: none;">
+            <button type="button">🔙 Back to Home</button>
+        </a>
+    </div>
 
     {% if error %}
         <p style="color: red;">{{ error }}</p>
@@ -232,7 +234,6 @@
     </form>
     {% endif %}
 
-    <!-- Loading overlay -->
     <div id="processing-overlay">
         <div class="spinner"></div>
         <p>Processing request...</p>
@@ -243,32 +244,26 @@
             document.body.classList.toggle("dark");
             localStorage.setItem("theme", document.body.classList.contains("dark") ? "dark" : "light");
         }
-    
+
         (function () {
             const saved = localStorage.getItem("theme");
             if (saved === "light") {
                 document.body.classList.remove("dark");
             }
         })();
-    
-        // Show overlay on form submit
+
         document.addEventListener("DOMContentLoaded", () => {
-            console.log("JavaScript loaded - attaching submit listener");
-    
-            document.querySelectorAll("form").forEach(form => {
-                form.addEventListener("submit", (e) => {
+            const analyzeForm = document.getElementById("analyze-form");
+            if (analyzeForm) {
+                analyzeForm.addEventListener("submit", () => {
                     const overlay = document.getElementById("processing-overlay");
                     if (overlay) {
                         overlay.style.display = "flex";
-                        console.log("Overlay shown!");
-                    } else {
-                        console.log("Overlay element not found.");
                     }
                 });
-            });
+            }
         });
     </script>
-    
 
     {% if saved %}
     <script>
@@ -280,30 +275,29 @@
         alert("❌ Error: {{ error }}");
     </script>
     {% endif %}
+
     {% if task_id %}
     <script>
         const taskId = "{{ task_id }}";
-    
+
         function checkStatus() {
             fetch(`/task_status/${taskId}`)
                 .then(res => res.json())
                 .then(data => {
                     console.log(data);
                     if (data.state === "SUCCESS") {
-                        // When task completes, re-render page with result
                         localStorage.setItem("summary_result", JSON.stringify(data.result));
                         window.location.href = `/result/${taskId}`;
                     } else if (data.state === "FAILURE") {
                         alert("❌ Task failed: " + (data.error || "unknown error"));
                     } else {
-                        // still processing, check again in 1 sec
                         setTimeout(checkStatus, 1000);
                     }
                 });
         }
-    
+
         checkStatus();
     </script>
-    {% endif %}    
+    {% endif %}
 </body>
 </html>
