@@ -98,7 +98,7 @@ def regroup_by_file_path(data, message_separator=" || ", line_separator="---"):
     return list(grouped.values())
 
 # Main parsing function
-def parse_diff_by_commit(commits):
+def parse_diff_by_commit(commits,  task=None):
     result = []
 
     for commit in commits:
@@ -162,6 +162,16 @@ def parse_diff_by_commit(commits):
             added_lines=file_change["added_lines"],
             removed_lines=file_change["removed_lines"]
         )
+
+        if task:
+            task.update_state(
+                state='PROGRESS',
+                meta={
+                    'current': index,
+                    'total': file_count,
+                    'status': f'Processed {index} of {file_count}'
+                }
+            )
 
         if index % 15 == 0:
             print(f"Processed {index}/{file_count} items. Sleeping for 60 seconds to avoid hitting rate limits.")

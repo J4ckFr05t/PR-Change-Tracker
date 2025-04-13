@@ -1,24 +1,34 @@
-from flask import Flask, render_template, request, send_file
+from flask import Flask, render_template, request, send_file, jsonify
 from github_utils import get_pr_data
-from diff_parser import parse_diff_by_commit
 from save_to_json import save_summary_to_json
 from dotenv import load_dotenv
+from celery.result import AsyncResult
+from tasks import analyze_pr_task
+from celery_worker import celery
 import os
 import re
 import io
 import pandas as pd
+import json
 
 app = Flask(__name__)
-
 load_dotenv()
 github_token = os.getenv("GITHUB_API_KEY")
 
+@app.route("/result/<task_id>")
+def show_result(task_id):
+    task = AsyncResult(task_id, app=celery)
+    if task.state == "SUCCESS":
+        return render_template("index.html", summary=task.result)
+    else:
+        return "Task not finished yet", 202
 
 @app.route("/", methods=["GET", "POST"])
 def index():
     summary = None
     error = None
     action = None
+    task_id = None
 
     if request.method == "POST":
         action = request.form.get("action")
@@ -29,17 +39,15 @@ def index():
                 repo, pr_number = parse_pr_url(pr_url)
 
                 pr_data = get_pr_data(repo, pr_number, github_token)
-                commit_data = parse_diff_by_commit(pr_data["commits"])
 
-                summary = {
-                    "metadata": {
-                        "title": pr_data["title"],
-                        "author": pr_data["author"],
-                        "state": pr_data["state"],
-                        "url": pr_url
-                    },
-                    "commits": commit_data
-                }
+                # Call the background Celery task
+                task = analyze_pr_task.apply_async(args=[{
+                    "pr_data": pr_data,
+                    "url": pr_url
+                }])
+                task_id = task.id
+
+                return render_template("index.html", task_id=task_id)  # UI should poll using this
 
             elif action == "save":
                 pr_url = request.form.get("pr_url")
@@ -84,7 +92,41 @@ def index():
             error = str(e)
 
     saved = action == "save" and not error
-    return render_template("index.html", summary=summary, error=error, saved=saved)
+    return render_template("index.html", summary=summary, error=error, saved=saved, task_id=task_id)
+
+
+@app.route("/task_status/<task_id>")
+def task_status(task_id):
+    task = AsyncResult(task_id, app=celery)
+
+    if task.state == 'PENDING':
+        response = {
+            'state': task.state,
+            'progress': 0
+        }
+    elif task.state == 'PROGRESS':
+        progress = task.info or {}
+        current = progress.get('current', 0)
+        total = progress.get('total', 1)
+        response = {
+            'state': task.state,
+            'progress': int((current / total) * 100),
+            'details': progress.get('status', '')
+        }
+    elif task.state == 'SUCCESS':
+        response = {
+            'state': task.state,
+            'progress': 100,
+            'result': task.result
+        }
+    else:
+        response = {
+            'state': task.state,
+            'error': str(task.info)
+        }
+
+    return jsonify(response)
+
 
 @app.route("/download_excel", methods=["POST"])
 def download_excel():
@@ -93,11 +135,10 @@ def download_excel():
         count = int(request.form.get("commit_count"))
         rows = []
 
-        # Extract repo and PR number from URL
         match = re.search(r"github\.com/([^/]+/[^/]+)/pull/(\d+)", pr_url)
         if match:
-            repo = match.group(1).replace("/", "_")  # e.g. openai_gym
-            pr_number = match.group(2)              # e.g. 234
+            repo = match.group(1).replace("/", "_")
+            pr_number = match.group(2)
         else:
             repo = "unknown_repo"
             pr_number = "unknown_pr"
@@ -130,6 +171,7 @@ def download_excel():
 
     except Exception as e:
         return f"Error creating Excel file: {str(e)}", 500
+
 
 def parse_pr_url(url):
     parts = url.strip().split("/")

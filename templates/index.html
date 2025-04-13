@@ -280,5 +280,30 @@
         alert("❌ Error: {{ error }}");
     </script>
     {% endif %}
+    {% if task_id %}
+    <script>
+        const taskId = "{{ task_id }}";
+    
+        function checkStatus() {
+            fetch(`/task_status/${taskId}`)
+                .then(res => res.json())
+                .then(data => {
+                    console.log(data);
+                    if (data.state === "SUCCESS") {
+                        // When task completes, re-render page with result
+                        localStorage.setItem("summary_result", JSON.stringify(data.result));
+                        window.location.href = `/result/${taskId}`;
+                    } else if (data.state === "FAILURE") {
+                        alert("❌ Task failed: " + (data.error || "unknown error"));
+                    } else {
+                        // still processing, check again in 1 sec
+                        setTimeout(checkStatus, 1000);
+                    }
+                });
+        }
+    
+        checkStatus();
+    </script>
+    {% endif %}    
 </body>
 </html>
