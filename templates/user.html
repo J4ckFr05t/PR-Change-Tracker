@@ -253,7 +253,87 @@
         .eye-icon:hover {
             opacity: 1;
         }
+        .account-info-section {
+            padding: 2rem;
+            max-width: 800px;
+        }
 
+
+        .form-section {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-bottom: 3rem;
+        }
+
+        .form-section h3 {
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
+        }
+
+        .form-section label {
+        font-weight: 500;
+        }
+
+        .form-section input {
+        padding: 0.75rem;
+        border: 1px solid #444;
+        border-radius: 8px;
+        background-color: #1c1c1c;
+        color: #fff;
+        }
+
+        .form-section button {
+        padding: 0.75rem;
+        border: none;
+        border-radius: 8px;
+        background-color: #2979ff;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+        }
+        .flash-message {
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.75rem;
+            border-radius: 8px;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: opacity 0.5s ease;
+            max-width: 400px;
+            margin-inline: auto;
+            }
+
+            body.dark .flash-message {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            }
+
+            body:not(.dark) .flash-message {
+            background: rgba(0, 0, 0, 0.05);
+            color: #000;
+            }
+
+            .flash-container {
+                position: fixed;
+                top: 1rem;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 1000;
+                width: 100%;
+                max-width: 400px;
+                pointer-events: none; /* prevents blocking clicks under it */
+                }
+
+            .flash-message {
+            background-color: #444;
+            color: white;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            pointer-events: auto;
+            }
     </style>
 </head>
 <body class="dark">
@@ -283,45 +363,60 @@
     </div>
 
     <div class="main-content">
-        <div id="account-section" class="section active">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-container">
+            {% for category, message in messages %}
+              <div data-flash class="flash-message">
+                {{ message }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+      
+      <div id="account-section" class="section active">
+        <div class="account-info-section">
             <h2>Account Info</h2>
-            <form method="post" action="/update_account_info">
-                <div class="input-group">
-                    <label>Change Password</label>
-                    <div class="input-wrapper">
-                        <input type="password" name="password" id="password" placeholder="New Password" />
-                        <svg class="eye-icon" viewBox="0 0 24 24">
-                            <path d="M12 4.5C7 4.5 2.73 8.11 1 12c1.73 3.89 6 7.5 11 7.5s9.27-3.61 11-7.5c-1.73-3.89-6-7.5-11-7.5zm0 12a4.5 4.5 0 110-9 4.5 4.5 0 010 9z"/>
-                            <circle cx="12" cy="12" r="2.5"/>
-                        </svg>
-                    </div>
-                </div>
-                
-                <div class="input-group">
-                    <label>GitHub API Token</label>
-                    <div class="input-wrapper">
-                        <input type="password" name="github_token" id="github_token" placeholder="GitHub Token" value="{{ github_token or '' }}" />
-                        <svg class="eye-icon" viewBox="0 0 24 24">
-                            <path d="M12 4.5C7 4.5 2.73 8.11 1 12c1.73 3.89 6 7.5 11 7.5s9.27-3.61 11-7.5c-1.73-3.89-6-7.5-11-7.5zm0 12a4.5 4.5 0 110-9 4.5 4.5 0 010 9z"/>
-                            <circle cx="12" cy="12" r="2.5"/>
-                        </svg>
-                    </div>
-                </div>
-                
-                <div class="input-group">
-                    <label>Google API Token</label>
-                    <div class="input-wrapper">
-                        <input type="password" name="google_token" id="google_token" placeholder="Google Token" value="{{ google_token or '' }}" />
-                        <svg class="eye-icon" viewBox="0 0 24 24">
-                            <path d="M12 4.5C7 4.5 2.73 8.11 1 12c1.73 3.89 6 7.5 11 7.5s9.27-3.61 11-7.5c-1.73-3.89-6-7.5-11-7.5zm0 12a4.5 4.5 0 110-9 4.5 4.5 0 010 9z"/>
-                            <circle cx="12" cy="12" r="2.5"/>
-                        </svg>
-                    </div>
-                </div>
-            
-                <button type="submit">Update Info</button>
+          
+            <!-- Change Password -->
+            <form action="/update_password" method="post" class="form-section">
+              <h3>Change Password</h3>
+          
+              <label>Current Password</label>
+              <input type="password" name="current_password" placeholder="Current Password" required />
+          
+              <label>New Password</label>
+              <input type="password" name="new_password" placeholder="New Password" required />
+          
+              <label>Confirm New Password</label>
+              <input type="password" name="confirm_password" placeholder="Confirm New Password" required />
+          
+              <button type="submit">Update Password</button>
+            </form>
+          
+            <!-- Update GitHub Token -->
+            <form action="/update_github_token" method="post" class="form-section">
+              <h3>Update GitHub Token</h3>
+          
+              <label>GitHub Personal Access Token</label>
+              <input type="password" name="github_api_token" placeholder="ghp_..." required />
+          
+              <button type="submit">Update GitHub Token</button>
+            </form>
+          
+            <!-- Update Google API Token -->
+            <form action="/update_google_token" method="post" class="form-section">
+              <h3>Update Google API Token</h3>
+          
+              <label>Google API Token</label>
+              <input type="password" name="google_api_token" placeholder="AIza..." required />
+          
+              <button type="submit">Update Google Token</button>
             </form>
         </div>
+      </div>
+          
 
         <div id="summarizer-section" class="section">
             {% include "components/pr_summarizer.html" %}
@@ -373,5 +468,16 @@
             });
         });
     </script>
+    <script>
+        // Auto-hide flash messages after 3 seconds
+        setTimeout(() => {
+          const flashMessages = document.querySelectorAll('[data-flash]');
+          flashMessages.forEach(msg => {
+            msg.style.transition = 'opacity 0.5s ease';
+            msg.style.opacity = '0';
+            setTimeout(() => msg.remove(), 500);
+          });
+        }, 3000);
+      </script>
 </body>
 </html>

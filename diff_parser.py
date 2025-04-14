@@ -7,18 +7,15 @@ from dotenv import load_dotenv
 import os
 import time
 
-# Load environment variables
-load_dotenv()
-
-# Initialize Gemini client with API Key
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-
-# Load the model (change to "gemini-1.5-pro" or "gemini-pro" depending on your access level)
-model = genai.GenerativeModel("gemini-2.0-flash")
-
-
 # Function to call Gemini and generate summary with retry logic
-def summarize_change_with_retry(message, added_lines, removed_lines, retries=3):
+def summarize_change_with_retry(message, added_lines, removed_lines, google_token=None, retries=3):
+    #print("[DEBUG] Google token in summarize_change_with_retry:", google_token)
+
+    # ✅ Configure token ONCE
+    genai.configure(api_key=google_token)
+
+    model = genai.GenerativeModel("gemini-2.0-flash")
+
     attempt = 0
     while attempt < retries:
         try:
@@ -42,27 +39,28 @@ def summarize_change_with_retry(message, added_lines, removed_lines, retries=3):
         except Exception as e:
             error_message = str(e)
             print(error_message)
-            # Check if we encountered a 429 error
+
             if "429" in error_message and "retry_delay" in error_message:
-                # Extract the retry delay (in seconds) from the error message using regex
                 match = re.search(r'retry_delay\s*{\s*seconds\s*:\s*(\d+)', error_message)
-                print('seconds recommended: ',match)
                 if match:
                     retry_delay = int(match.group(1))
-                    print(f"Quota exceeded. Retry in {retry_delay + 1} seconds...")
-                    time.sleep(retry_delay + 1)  # Wait for the specified retry delay + 1 second
-                    attempt += 1  # Increment attempt counter
-                    continue  # Retry the same commit by continuing the loop
+                    print(f"Quota exceeded. Retrying in {retry_delay + 1} seconds...")
+                    time.sleep(retry_delay + 1)
+                    attempt += 1
+                    continue
                 else:
-                    print("Could not extract retry delay from error message.")
+                    print("Couldn't parse retry delay.")
                     break
             else:
                 return f"Error generating summary: {e}"
 
-    # If retries exhausted, wait 1 minute and retry once more
-    print("Retries exhausted. Waiting 1 minute before retrying the same commit.")
+    # 🔁 Final retry after 1 min, must include google_token
+    print("Retries exhausted. Waiting 1 minute before retrying once more...")
     time.sleep(60)
-    return summarize_change_with_retry(message, added_lines, removed_lines, retries=1)  # Retry once more after waiting
+    return summarize_change_with_retry(
+        message, added_lines, removed_lines,
+        google_token=google_token, retries=1
+    )
 
 # Group changes by file path
 def regroup_by_file_path(data, message_separator=" || ", line_separator="---"):
@@ -98,9 +96,9 @@ def regroup_by_file_path(data, message_separator=" || ", line_separator="---"):
     return list(grouped.values())
 
 # Main parsing function
-def parse_diff_by_commit(commits,  task=None):
+def parse_diff_by_commit(commits,  task=None, google_token=None):
     result = []
-
+    #print("[DEBUG] Google token in diff_parser:", google_token)
     for commit in commits:
         commit_entry = {
             "message": commit["message"],
@@ -169,7 +167,8 @@ def parse_diff_by_commit(commits,  task=None):
         item["summary"] = summarize_change_with_retry(
             message=item["message"],
             added_lines=file_change["added_lines"],
-            removed_lines=file_change["removed_lines"]
+            removed_lines=file_change["removed_lines"],
+            google_token=google_token
         )
 
         if index % 15 == 0:

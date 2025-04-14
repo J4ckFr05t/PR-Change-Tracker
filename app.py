@@ -17,7 +17,7 @@ import json
 app = Flask(__name__)
 
 load_dotenv()
-github_token = os.getenv("GITHUB_API_KEY")
+#github_token = os.getenv("GITHUB_API_KEY")
 
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "dev-secret-key")
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
@@ -33,6 +33,8 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)  # Unique ID
     email = db.Column(db.String(150), unique=True, nullable=False)  # User's email (used for login)
     password = db.Column(db.String(150), nullable=False)  # Hashed password
+    github_api_token = db.Column(db.String(255))
+    google_api_token = db.Column(db.String(255))
 
     def __repr__(self):
         return f"<User {self.email}>"
@@ -86,6 +88,54 @@ def login():
 def user_dashboard():
     return render_template("user.html", user_email=current_user.email)
 
+@app.route("/update_password", methods=["POST"])
+@login_required
+def update_password():
+    current = request.form.get("current_password")
+    new = request.form.get("new_password")
+    confirm = request.form.get("confirm_password")
+
+    if not check_password_hash(current_user.password, current):
+        flash("Current password is incorrect.", "error")
+        return redirect(url_for("user_dashboard"))
+
+    if new != confirm:
+        flash("New passwords do not match.", "error")
+        return redirect(url_for("user_dashboard"))
+
+    current_user.password = generate_password_hash(new)
+    db.session.commit()
+    flash("Password updated successfully!", "success")
+    return redirect(url_for("user_dashboard"))
+
+@app.route("/update_github_token", methods=["POST"])
+@login_required
+def update_token():
+    token = request.form.get("github_api_token")
+
+    if not token or len(token) < 10:
+        flash("Invalid GitHub token.", "error")
+        return redirect(url_for("user_dashboard"))
+
+    current_user.github_api_token = token
+    db.session.commit()
+    flash("GitHub token updated successfully!", "success")
+    return redirect(url_for("user_dashboard"))
+
+@app.route("/update_google_token", methods=["POST"])
+@login_required
+def update_google_token():
+    token = request.form.get("google_api_token")
+
+    if not token or len(token) < 10:
+        flash("Invalid Google token.", "error")
+        return redirect(url_for("user_dashboard"))
+
+    current_user.google_api_token = token
+    db.session.commit()
+    flash("Google token updated successfully!", "success")
+    return redirect(url_for("user_dashboard"))
+
 @app.route("/summarize", methods=["POST"])
 @login_required
 def summarize():
@@ -101,12 +151,17 @@ def summarize():
         repo, pr_number = parse_pr_url(pr_url)
         print("Parsed repo:", repo, "PR number:", pr_number)
 
-        pr_data = get_pr_data(repo, pr_number, github_token)
+        # print("[DEBUG] Current User Google Token:", current_user.google_api_token)
+        # print("[DEBUG] Current User GitHub Token:", current_user.github_api_token)
+
+        user_github_token = current_user.github_api_token
+        pr_data = get_pr_data(repo, pr_number, user_github_token)
         print("Fetched PR data.")
 
         task = analyze_pr_task.apply_async(args=[{
             "pr_data": pr_data,
-            "url": pr_url
+            "url": pr_url,
+            "google_token": current_user.google_api_token
         }])
         print("Task ID:", task.id)
 
