@@ -11,7 +11,7 @@ import time
 load_dotenv()
 
 # Initialize Gemini client with API Key
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 # Load the model (change to "gemini-1.5-pro" or "gemini-pro" depending on your access level)
 model = genai.GenerativeModel("gemini-2.0-flash")
