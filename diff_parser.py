@@ -3,7 +3,6 @@ from io import StringIO
 import json
 import copy
 import google.generativeai as genai
-from dotenv import load_dotenv
 import os
 import time
 

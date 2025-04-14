@@ -3,8 +3,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from github_utils import get_pr_data
-from save_to_json import save_summary_to_json
-from dotenv import load_dotenv
 from celery.result import AsyncResult
 from tasks import analyze_pr_task
 from celery_worker import celery
@@ -15,9 +13,6 @@ import pandas as pd
 import json
 
 app = Flask(__name__)
-
-load_dotenv()
-#github_token = os.getenv("GITHUB_API_KEY")
 
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "dev-secret-key")
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
