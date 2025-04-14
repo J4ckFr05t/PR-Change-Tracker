@@ -304,6 +304,7 @@
     <div id="processing-overlay">
         <div class="spinner"></div>
         <p id="progress-text">Processing...</p>
+        <p id="progress-note" style="font-size: 1rem; opacity: 0.8; margin-top: 0.5rem;"></p>
         <div id="progress-container">
             <div id="progress-bar"></div>
         </div>
@@ -351,11 +352,50 @@
     
             const taskId = "{{ task_id }}";
     
+            const progressMessages = [
+                "Summoning the diff spirits 🔮",
+                "Please be patient. Sorry for the slowness — it’s a dev API 😅",
+                "Still working... probably writing tests nobody asked for 🧪",
+                "I will sleep after processing each 15 files... 😴",
+                "Grabbing some tea/coffee ☕ — BRB",
+                "Just linting the air around the code...",
+                "Refactoring reality itself...",
+                "Loading... because waiting is character-building 😇",
+                "Polishing your PR summary ✨",
+                "Don’t worry, I’m not infinite-looping (probably)."
+            ];
+    
+            let msgIndex = 0;
+            let stopNotes = false;
+    
+            function rotateProgressNote() {
+                const note = document.getElementById("progress-note");
+                if (!note || stopNotes) return;
+    
+                note.style.opacity = 0;
+    
+                setTimeout(() => {
+                    if (stopNotes) return;
+    
+                    note.textContent = progressMessages[msgIndex];
+                    note.style.opacity = 1;
+                    msgIndex = (msgIndex + 1) % progressMessages.length;
+    
+                    setTimeout(() => {
+                        if (!stopNotes) rotateProgressNote();
+                    }, 2000); // Show each note for 2s
+                }, 500); // Fade out time
+            }
+    
+            // ✅ Start rotating messages right away (not inside nested DOMContentLoaded)
+            rotateProgressNote();
+    
             function checkStatus() {
                 fetch(`/task_status/${taskId}`)
                     .then(res => res.json())
                     .then(data => {
                         const progressText = document.getElementById("progress-text");
+                        const progressNote = document.getElementById("progress-note");
                         const progressBar = document.getElementById("progress-bar");
     
                         if (data.state === "SUCCESS") {
@@ -366,9 +406,17 @@
                             if (progressText && data.details) {
                                 progressText.textContent = data.details;
                             }
+    
                             if (progressBar && data.progress !== undefined) {
                                 progressBar.style.width = `${data.progress}%`;
                             }
+    
+                            if (data.progress >= 90 && progressNote && !stopNotes) {
+                                stopNotes = true;
+                                progressNote.style.opacity = 1;
+                                progressNote.textContent = "Almost done! 🏁 Just a bit more!";
+                            }
+    
                             setTimeout(checkStatus, 1000);
                         }
                     })
@@ -379,6 +427,7 @@
         });
     </script>
     {% endif %}
+    
     
     </body>
     </html>
