@@ -167,10 +167,64 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .theme-switch {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+            }
+
+            .theme-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+            }
+
+            .slider {
+            position: absolute;
+            cursor: pointer;
+            background-color: #ccc;
+            border-radius: 34px;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            transition: 0.4s;
+            }
+
+            .slider:before {
+            content: "🌞";
+            position: absolute;
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            border-radius: 50%;
+            transition: 0.4s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            }
+
+            input:checked + .slider {
+            background-color: #333;
+            }
+
+            input:checked + .slider:before {
+            transform: translateX(26px);
+            content: "🌜";
+            }
     </style>
 </head>
 <body class="dark">
-    <button class="toggle-btn" onclick="toggleDarkMode()">🌓</button>
+    <label class="theme-switch">
+        <input type="checkbox" id="theme-toggle" />
+        <span class="slider"></span>
+      </label>
 
     {% if not summary %}
     <div class="center-screen">
@@ -184,7 +238,7 @@
         {% endif %}
     </div>
     {% else %}
-    <h1>DiffSage</h1>
+    <h1>Diff<span style="color: grey;">Sage</span></h1>
 
     <!-- Back to Home Button -->
     <div class="top-form">
@@ -256,17 +310,27 @@
     </div>
     
     <script>
-        function toggleDarkMode() {
-            document.body.classList.toggle("dark");
-            localStorage.setItem("theme", document.body.classList.contains("dark") ? "dark" : "light");
-        }
-    
-        (function () {
-            const saved = localStorage.getItem("theme");
-            if (saved === "light") {
-                document.body.classList.remove("dark");
+  function applyTheme(theme) {
+    if (theme === "dark") {
+            document.body.classList.add("dark");
+            document.getElementById("theme-toggle").checked = true;
+            } else {
+            document.body.classList.remove("dark");
+            document.getElementById("theme-toggle").checked = false;
             }
-        })();
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const toggle = document.getElementById("theme-toggle");
+            const savedTheme = localStorage.getItem("theme") || "light";
+            applyTheme(savedTheme);
+
+            toggle.addEventListener("change", () => {
+            const newTheme = toggle.checked ? "dark" : "light";
+            localStorage.setItem("theme", newTheme);
+            applyTheme(newTheme);
+            });
+        });
     
         document.addEventListener("DOMContentLoaded", () => {
             const analyzeForm = document.getElementById("analyze-form");
