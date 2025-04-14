@@ -1,0 +1,134 @@
+<div>
+  <h2>GitHub PR Summarizer</h2>
+  <input type="text" id="pr-url" placeholder="Enter PR URL..." />
+  <button id="summarize-btn">Summarize</button>
+  <div id="summary-output" class="mt-6 space-y-6"></div>
+</div>
+
+<style>
+  pre {
+    background: #f4f4f5;
+    padding: 0.75rem;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    border-radius: 0.375rem;
+  }
+  .dark pre {
+    background: #1f2937;
+    color: #f3f4f6;
+  }
+</style>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const summarizeBtn = document.getElementById("summarize-btn");
+
+    summarizeBtn?.addEventListener("click", async () => {
+      const prUrl = document.getElementById("pr-url").value.trim();
+      const output = document.getElementById("summary-output");
+
+      if (!prUrl) {
+        output.innerHTML = "<p class='text-red-500'>Please enter a PR URL.</p>";
+        return;
+      }
+
+      output.innerHTML = "<p class='text-gray-500'>Submitting...</p>";
+
+      try {
+        const response = await fetch("/summarize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pr_url: prUrl })
+        });
+
+        const result = await response.json();
+        if (result.task_id) {
+          checkStatus(result.task_id);
+        } else {
+          output.innerHTML = `<p class='text-red-500'>${result.error || "Unexpected error."}</p>`;
+        }
+      } catch (err) {
+        output.innerHTML = `<p class='text-red-500'>${err.message}</p>`;
+      }
+    });
+  });
+
+  async function checkStatus(taskId) {
+    const output = document.getElementById("summary-output");
+    let polling = true;
+
+    while (polling) {
+      const res = await fetch(`/task_status/${taskId}`);
+      const data = await res.json();
+
+      if (data.state === "SUCCESS") {
+        polling = false;
+        renderSummary(data.result);
+      } else if (data.state === "FAILURE") {
+        polling = false;
+        output.innerHTML = "<p class='text-red-500'>Failed to summarize PR.</p>";
+      } else {
+        output.innerHTML = `<p class='text-gray-500'>Processing... (${data.progress || 0}%)</p>`;
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
+  }
+
+  function renderSummary(data) {
+  const output = document.getElementById("summary-output");
+  output.innerHTML = "";
+
+  // PR Metadata
+  if (data.metadata) {
+    const meta = data.metadata;
+    const metaBlock = `
+      <div class="dark:text-white space-y-1 border-b pb-4 mb-6">
+        <h2 class="text-2xl font-bold">Title: ${meta.title}</h2>
+        <p class="text-sm text-gray-600 dark:text-gray-400">Author: ${meta.author}</p>
+        <p class="text-sm text-gray-600 dark:text-gray-400">State: ${meta.state}</p>
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+          <a href="${meta.url}" target="_blank" class="text-blue-600 dark:text-blue-400 underline">View on GitHub</a>
+        </p>
+      </div>
+    `;
+    output.insertAdjacentHTML("beforeend", metaBlock);
+  }
+
+  // Show file-level summaries
+  data.commits.forEach(commit => {
+    const files = commit.files_changed || [];
+    files.forEach(file => {
+      const container = document.createElement("div");
+      container.className = "mb-8 p-4 bg-white dark:bg-gray-900 border rounded shadow dark:text-gray-100";
+
+      const addedLines = file.added_lines?.length
+      ? `<details class="mb-4">
+            <summary class="cursor-pointer font-semibold text-green-400">+ Added Lines</summary>
+            <div class="max-h-64 overflow-y-auto bg-zinc-900 text-green-200 font-mono text-sm p-3 mt-2 rounded border border-green-500 whitespace-pre-wrap">
+              <pre>${file.added_lines.join("\n")}</pre>
+            </div>
+          </details>`
+      : "";
+
+    const removedLines = file.removed_lines?.length
+      ? `<details class="mb-4">
+            <summary class="cursor-pointer font-semibold text-red-400">− Removed Lines</summary>
+            <div class="max-h-64 overflow-y-auto bg-zinc-900 text-red-300 font-mono text-sm p-3 mt-2 rounded border border-red-500 whitespace-pre-wrap">
+              <pre>${file.removed_lines.join("\n")}</pre>
+            </div>
+          </details>`
+      : "";
+
+      container.innerHTML = `
+        <p class="text-sm font-semibold mb-1">Affected File: <span class="font-mono">${file.file_path}</span></p>
+        <p class="italic text-sm mb-3">Reason for change: ${commit.summary || "No summary provided."}</p>
+        ${addedLines}
+        ${removedLines}
+      `;
+
+      output.appendChild(container);
+    });
+  });
+}
+
+</script>
