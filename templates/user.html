@@ -30,8 +30,12 @@
             background: var(--input-bg);
             padding: 1.5rem;
             box-shadow: 2px 0 10px rgba(0, 0, 0, 0.08);
-            height: 100vh;
             box-sizing: border-box;
+            min-height: 100vh;       /* Start with full height of screen */
+            height: auto;            /* Let it grow beyond that */
+            position: sticky;        /* Optional: stick as you scroll */
+            top: 0;
+            align-self: flex-start;
         }
 
         .sidebar h2 {
