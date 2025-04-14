@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+    <style>
+        :root {
+            --bg: #f4f4f4;
+            --text: #000;
+            --input-bg: #fff;
+        }
+
+        body.dark {
+            --bg: #121212;
+            --text: #eaeaea;
+            --input-bg: #1f1f1f;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .theme-switch {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            width: 60px;
+            height: 34px;
+        }
+
+        .theme-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            background-color: #ccc;
+            border-radius: 34px;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            transition: 0.4s;
+        }
+
+        .slider:before {
+            content: "🌞";
+            position: absolute;
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            border-radius: 50%;
+            transition: 0.4s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        input:checked + .slider {
+            background-color: #333;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+            content: "🌜";
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            padding: 1rem;
+        }
+
+        h1 {
+            margin-bottom: 2rem;
+            font-size: 1.8rem;
+        }
+
+        .form-box {
+            background: var(--input-bg);
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-weight: 600;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #aaa;
+            border-radius: 10px;
+            font-size: 1rem;
+            background: var(--input-bg);
+            color: var(--text);
+            box-sizing: border-box;
+            margin-bottom: 1.2rem;
+        }
+
+        body.dark input[type="text"],
+        body.dark input[type="password"] {
+            border: 1px solid #555;
+        }
+
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            background: #347dff;
+            color: white;
+            font-size: 1rem;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .footer-text {
+            margin-top: 1rem;
+            text-align: center;
+            font-size: 0.95rem;
+        }
+
+        .footer-text a {
+            color: #347dff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .footer-text a:hover {
+            text-decoration: underline;
+        }
+
+        .flash-message {
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.75rem;
+            border-radius: 8px;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: opacity 0.5s ease;
+            max-width: 400px;
+            margin-inline: auto;
+            }
+
+            body.dark .flash-message {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            }
+
+            body:not(.dark) .flash-message {
+            background: rgba(0, 0, 0, 0.05);
+            color: #000;
+            }
+
+            .flash-container {
+                position: fixed;
+                top: 1rem;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 1000;
+                width: 100%;
+                max-width: 400px;
+                pointer-events: none; /* prevents blocking clicks under it */
+                }
+
+            .flash-message {
+            background-color: #444;
+            color: white;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            pointer-events: auto;
+            }
+    </style>
+</head>
+<body class="dark">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-container">
+        {% for category, message in messages %}
+          <div data-flash class="flash-message">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+  
+    <label class="theme-switch">
+        <input type="checkbox" id="theme-toggle" />
+        <span class="slider"></span>
+    </label>
+
+    <div class="container">
+        <h1>Login to Diff<span style="color: grey;">Sage</span></h1>
+        <form method="POST" action="/login" class="form-box">
+            <label for="email">Email</label>
+            <input type="text" id="email" name="email" required>
+
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required>
+
+            <button type="submit">Log In</button>
+        </form>
+
+        <div class="footer-text">
+            Don’t have an account?
+            <a href="/signup">Create one</a>
+        </div>
+    </div>
+
+    <script>
+        function applyTheme(theme) {
+            document.body.classList.toggle("dark", theme === "dark");
+            document.getElementById("theme-toggle").checked = theme === "dark";
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const toggle = document.getElementById("theme-toggle");
+            const savedTheme = localStorage.getItem("theme") || "dark";
+            applyTheme(savedTheme);
+
+            toggle.addEventListener("change", () => {
+                const theme = toggle.checked ? "dark" : "light";
+                localStorage.setItem("theme", theme);
+                applyTheme(theme);
+            });
+        });
+    </script>
+    <script>
+        // Auto-hide flash messages after 3 seconds
+        setTimeout(() => {
+          const flashMessages = document.querySelectorAll('[data-flash]');
+          flashMessages.forEach(msg => {
+            msg.style.transition = 'opacity 0.5s ease';
+            msg.style.opacity = '0';
+            setTimeout(() => msg.remove(), 500);
+          });
+        }, 3000);
+      </script>
+</body>
+</html>

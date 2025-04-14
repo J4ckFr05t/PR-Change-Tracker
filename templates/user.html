@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DiffSage – Dashboard</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:400,600">
+    <style>
+        :root {
+            --bg: #f4f4f4;
+            --text: #000;
+            --input-bg: #fff;
+        }
+
+        body.dark {
+            --bg: #121212;
+            --text: #eaeaea;
+            --input-bg: #1f1f1f;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: var(--input-bg);
+            padding: 1.5rem;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.08);
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .sidebar h2 {
+            margin-top: 0;
+            font-size: 1.8rem;
+        }
+
+        .sidebar a {
+            display: block;
+            margin: 0.5rem 0;
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.5rem;
+            border-radius: 8px;
+        }
+
+        .sidebar a.active {
+            background-color: #347dff;
+            color: white;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            box-sizing: border-box;
+        }
+
+        .form-section {
+            max-width: 600px;
+        }
+
+        label {
+            font-weight: 600;
+            display: block;
+            margin-top: 1rem;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 0.75rem;
+            margin-top: 0.3rem;
+            border: 1px solid #aaa;
+            border-radius: 10px;
+            font-size: 1rem;
+            background: var(--input-bg);
+            color: var(--text);
+            box-sizing: border-box;
+        }
+
+        button {
+            margin-top: 1.5rem;
+            padding: 0.75rem 1.5rem;
+            background: #347dff;
+            color: white;
+            font-size: 1rem;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .theme-switch {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            width: 60px;
+            height: 34px;
+        }
+
+        .theme-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            background-color: #ccc;
+            border-radius: 34px;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            transition: 0.4s;
+        }
+
+        .slider:before {
+            content: "🌞";
+            position: absolute;
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            border-radius: 50%;
+            transition: 0.4s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        input:checked + .slider {
+            background-color: #333;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+            content: "🌜";
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .user-block {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin: 1.5rem 0 1rem;
+        }
+
+        .user-avatar {
+            width: 42px;
+            height: 42px;
+            background: #888;
+            border-radius: 50%;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-info span:first-child {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .user-info span:last-child {
+            font-size: 0.85rem;
+            color: gray;
+            word-break: break-all;
+        }
+
+        .user-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            padding-right: 40px;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 10px;
+            cursor: pointer;
+            user-select: none;
+            font-size: 18px;
+            color: #888;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            padding-right: 40px;
+        }
+
+        .eye-icon {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+            position: absolute;
+            right: 10px;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+
+        .eye-icon:hover {
+            opacity: 1;
+        }
+
+    </style>
+</head>
+<body class="dark">
+    <label class="theme-switch">
+        <input type="checkbox" id="theme-toggle" />
+        <span class="slider"></span>
+    </label>
+
+    <div class="sidebar">
+        <h2>
+            <a href="/" style="text-decoration: none; color: inherit;">
+                Diff<span style="color: grey;">Sage</span>
+            </a>
+        </h2>
+
+        <div class="user-block">
+            <img class="user-avatar" src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="User Avatar">
+            <div class="user-info">
+                <span>Logged in</span>
+                <span>{{ user_email }}</span>
+            </div>
+        </div>
+
+        <a href="#" id="account-link" class="active">Account Info</a>
+        <a href="#" id="summarizer-link">GitHub PR Summarizer</a>
+        <a href="{{ url_for('logout') }}">Logout</a>
+    </div>
+
+    <div class="main-content">
+        <div id="account-section" class="section active">
+            <h2>Account Info</h2>
+            <form method="post" action="/update_account_info">
+                <div class="input-group">
+                    <label>Change Password</label>
+                    <div class="input-wrapper">
+                        <input type="password" name="password" id="password" placeholder="New Password" />
+                        <svg class="eye-icon" viewBox="0 0 24 24">
+                            <path d="M12 4.5C7 4.5 2.73 8.11 1 12c1.73 3.89 6 7.5 11 7.5s9.27-3.61 11-7.5c-1.73-3.89-6-7.5-11-7.5zm0 12a4.5 4.5 0 110-9 4.5 4.5 0 010 9z"/>
+                            <circle cx="12" cy="12" r="2.5"/>
+                        </svg>
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label>GitHub API Token</label>
+                    <div class="input-wrapper">
+                        <input type="password" name="github_token" id="github_token" placeholder="GitHub Token" value="{{ github_token or '' }}" />
+                        <svg class="eye-icon" viewBox="0 0 24 24">
+                            <path d="M12 4.5C7 4.5 2.73 8.11 1 12c1.73 3.89 6 7.5 11 7.5s9.27-3.61 11-7.5c-1.73-3.89-6-7.5-11-7.5zm0 12a4.5 4.5 0 110-9 4.5 4.5 0 010 9z"/>
+                            <circle cx="12" cy="12" r="2.5"/>
+                        </svg>
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label>Google API Token</label>
+                    <div class="input-wrapper">
+                        <input type="password" name="google_token" id="google_token" placeholder="Google Token" value="{{ google_token or '' }}" />
+                        <svg class="eye-icon" viewBox="0 0 24 24">
+                            <path d="M12 4.5C7 4.5 2.73 8.11 1 12c1.73 3.89 6 7.5 11 7.5s9.27-3.61 11-7.5c-1.73-3.89-6-7.5-11-7.5zm0 12a4.5 4.5 0 110-9 4.5 4.5 0 010 9z"/>
+                            <circle cx="12" cy="12" r="2.5"/>
+                        </svg>
+                    </div>
+                </div>
+            
+                <button type="submit">Update Info</button>
+            </form>
+        </div>
+
+        <div id="summarizer-section" class="section">
+            <h2>GitHub PR Summarizer</h2>
+            <p>This is where your PR summary tool will go.</p>
+        </div>
+    </div>
+
+    <script>
+        function applyTheme(theme) {
+            document.body.classList.toggle("dark", theme === "dark");
+            document.getElementById("theme-toggle").checked = theme === "dark";
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const savedTheme = localStorage.getItem("theme") || "dark";
+            applyTheme(savedTheme);
+
+            document.getElementById("theme-toggle").addEventListener("change", () => {
+                const newTheme = document.getElementById("theme-toggle").checked ? "dark" : "light";
+                localStorage.setItem("theme", newTheme);
+                applyTheme(newTheme);
+            });
+
+            const accountLink = document.getElementById('account-link');
+            const summarizerLink = document.getElementById('summarizer-link');
+            const accountSection = document.getElementById('account-section');
+            const summarizerSection = document.getElementById('summarizer-section');
+
+            accountLink.addEventListener('click', () => {
+                accountLink.classList.add('active');
+                summarizerLink.classList.remove('active');
+                accountSection.classList.add('active');
+                summarizerSection.classList.remove('active');
+            });
+
+            summarizerLink.addEventListener('click', () => {
+                summarizerLink.classList.add('active');
+                accountLink.classList.remove('active');
+                summarizerSection.classList.add('active');
+                accountSection.classList.remove('active');
+            });
+        });
+    </script>
+    <script>
+        document.querySelectorAll(".eye-icon").forEach(icon => {
+            icon.addEventListener("click", () => {
+                const input = icon.previousElementSibling;
+                input.type = input.type === "password" ? "text" : "password";
+            });
+        });
+    </script>
+</body>
+</html>
