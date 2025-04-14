@@ -73,9 +73,10 @@
   }
 
   .dark input[readonly] {
-    background-color: #374151;
+    background-color: #1f2937;
     color: #f3f4f6;
   }
+
 
   .info-note {
     font-style: italic;
@@ -94,6 +95,42 @@
   .dark .info-note.deleted-file {
     background: transparent;
     color: inherit;
+  }
+
+  .card.added-file {
+    background-color: #e6ffed; /* light green */
+    border-left: 4px solid #22c55e; /* green border */
+  }
+
+  .card.deleted-file {
+    background-color: #ffe6e6; /* light red */
+    border-left: 4px solid #ef4444; /* red border */
+  }
+
+  .card.modified-file,
+  .card:not(.added-file):not(.deleted-file) {
+    background-color: #fff7e6; /* light orange */
+    border-left: 4px solid #f59e0b; /* orange border */
+  }
+
+  /* Dark mode adjustments */
+  .dark .card.added-file {
+    background-color: #14532d;
+    border-left-color: #22c55e;
+    color: #ffffff; /* ✅ make text readable */
+  }
+
+  .dark .card.deleted-file {
+    background-color: #7f1d1d;
+    border-left-color: #ef4444;
+    color: #ffffff;
+  }
+
+  .dark .card.modified-file,
+  .dark .card:not(.added-file):not(.deleted-file) {
+    background-color: #78350f;
+    border-left-color: #f59e0b;
+    color: #ffffff;
   }
 
 </style>
@@ -197,8 +234,8 @@
       const fileClass = file.change_type ? `${file.change_type}-file` : "";
       const addedLines = file.added_lines?.length
         ? `<details class="mb-4">
-            <summary class="cursor-pointer font-semibold text-green-400">+ Added Lines</summary>
-            <div class="scroll-box bg-zinc-900 text-green-200 font-mono text-sm border border-green-500 rounded">
+            <summary class="cursor-pointer font-semibold text-green-600 dark:text-green-400">+ Added Lines</summary>
+            <div class="card added-file font-mono text-sm">
               <pre>${escapeHtml(file.added_lines.join("\n"))}</pre>
             </div>
           </details>`
@@ -206,8 +243,8 @@
 
       const removedLines = file.removed_lines?.length
         ? `<details class="mb-4">
-            <summary class="cursor-pointer font-semibold text-red-400">− Removed Lines</summary>
-            <div class="scroll-box bg-zinc-900 text-red-300 font-mono text-sm border border-red-500 rounded">
+            <summary class="cursor-pointer font-semibold text-red-600 dark:text-red-400">− Removed Lines</summary>
+            <div class="card deleted-file font-mono text-sm">
               <pre>${escapeHtml(file.removed_lines.join("\n"))}</pre>
             </div>
           </details>`
