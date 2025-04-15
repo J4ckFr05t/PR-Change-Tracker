@@ -1,0 +1,355 @@
+<div>
+  <h2>GitHub PR Summarizer</h2>
+  <input type="text" id="pr-url" placeholder="Enter PR URL..." />
+  <button id="summarize-btn">Summarize</button>
+  <div id="summary-output" class="mt-6 space-y-6"></div>
+</div>
+
+<style>
+  /* 🔹 PR Summarizer Input Styling */
+  #pr-url {
+    padding: 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    width: 100%;
+    max-width: 500px;
+    box-sizing: border-box;
+    margin-bottom: 1rem;
+    background-color: #fff;
+    color: #111;
+  }
+
+  .dark #pr-url {
+    background-color: #1f2937;
+    color: #f3f4f6;
+    border: 1px solid #374151;
+  }
+
+  #summarize-btn {
+    padding: 0.75rem 1.25rem;
+    background-color: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  #summarize-btn:hover {
+    background-color: #1d4ed8;
+  }
+  pre {
+    background: #f4f4f5;
+    padding: 0.75rem;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    border-radius: 0.375rem;
+    margin: 0; /* ✨ remove default vertical spacing */
+  }
+  .dark pre {
+    background: #1f2937;
+    color: #f3f4f6;
+  }
+  .scroll-box {
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 0.75rem;
+    white-space: pre-wrap;
+    margin-top: 0.25rem;
+    background-color: #1e293b; /* dark bg */
+    color: #f1f5f9; /* light text */
+    border: 1px solid #475569;
+    border-radius: 0.5rem;
+    font-family: monospace;
+    font-size: 0.875rem;
+  }
+
+  /* Light mode override */
+  @media (prefers-color-scheme: light) {
+    .scroll-box {
+      background-color: #f8fafc;  /* light bg */
+      color: #1e293b;             /* dark text */
+      border: 1px solid #cbd5e1;  /* lighter border */
+    }
+  }
+
+  .scroll-box pre {
+    color: inherit;
+    background: transparent;
+    margin: 0;
+    padding: 0;
+  }
+
+  summary {
+    margin-bottom: 0; /* ✨ remove built-in spacing */
+    padding-bottom: 0;
+  }
+  .card {
+    background: var(--card-bg, #f9f9f9);
+    padding: 1rem;
+    margin: 1rem 0;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px var(--card-shadow, rgba(0, 0, 0, 0.05));
+    color: var(--text, #333);
+  }
+
+  .dark .card {
+    background: #1f2937;
+    color: #e5e7eb;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  }
+
+  input[readonly] {
+    background-color: #f3f4f6;
+    color: #111827;
+  }
+
+  .dark input[readonly] {
+    background-color: #1f2937;
+    color: #f3f4f6;
+  }
+
+
+  .info-note {
+    font-style: italic;
+    padding: 0.5rem;
+    margin-top: 0.5rem;
+    border-radius: 4px;
+    color: var(--text, #333);
+  }
+
+  .info-note.added-file,
+  .info-note.deleted-file {
+    background: transparent;
+    color: inherit;
+  }
+  .dark .info-note.added-file,
+  .dark .info-note.deleted-file {
+    background: transparent;
+    color: inherit;
+  }
+
+  .card.added-file {
+    background-color: #e6ffed; /* light green */
+    border-left: 4px solid #22c55e; /* green border */
+  }
+
+  .card.deleted-file {
+    background-color: #ffe6e6; /* light red */
+    border-left: 4px solid #ef4444; /* red border */
+  }
+
+  .card.modified-file,
+  .card:not(.added-file):not(.deleted-file) {
+    background-color: #fff7e6; /* light orange */
+    border-left: 4px solid #f59e0b; /* orange border */
+  }
+
+  /* Dark mode adjustments */
+  .dark .card.added-file {
+    background-color: #14532d;
+    border-left-color: #22c55e;
+    color: #ffffff; /* ✅ make text readable */
+  }
+
+  .dark .card.deleted-file {
+    background-color: #7f1d1d;
+    border-left-color: #ef4444;
+    color: #ffffff;
+  }
+
+  .dark .card.modified-file,
+  .dark .card:not(.added-file):not(.deleted-file) {
+    background-color: #78350f;
+    border-left-color: #f59e0b;
+    color: #ffffff;
+  }
+
+  .commit-card {
+    background-color: #f8fafc; /* light gray */
+    border: 1px solid #d1d5db;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin: 1rem 0;
+    width: 100%;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.08);
+  }
+
+  .dark .commit-card {
+    background-color: #1e293b;
+    border-color: #374151;
+    color: #f8fafc;
+  }
+
+  #summary-output {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: stretch;
+    max-width: 100%; /* Ensures no overflow */
+    overflow-x: hidden;
+  }
+
+  .commit-card {
+    width: 100%;
+    box-sizing: border-box; /* Ensures padding/border stay within bounds */
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+</style>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const summarizeBtn = document.getElementById("summarize-btn");
+
+    summarizeBtn?.addEventListener("click", async () => {
+      const prUrl = document.getElementById("pr-url").value.trim();
+      const output = document.getElementById("summary-output");
+
+      if (!prUrl) {
+        output.innerHTML = "<p class='text-red-500'>Please enter a PR URL.</p>";
+        return;
+      }
+
+      output.innerHTML = "<p class='text-gray-500'>Submitting...</p>";
+
+      try {
+        const response = await fetch("/summarize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pr_url: prUrl })
+        });
+
+        const result = await response.json();
+        if (result.task_id) {
+          checkStatus(result.task_id);
+        } else {
+          output.innerHTML = `<p class='text-red-500'>${result.error || "Unexpected error."}</p>`;
+        }
+      } catch (err) {
+        output.innerHTML = `<p class='text-red-500'>${err.message}</p>`;
+      }
+    });
+  });
+
+  async function checkStatus(taskId) {
+    const output = document.getElementById("summary-output");
+    let polling = true;
+
+    while (polling) {
+      const res = await fetch(`/task_status/${taskId}`);
+      const data = await res.json();
+
+      if (data.state === "SUCCESS") {
+        polling = false;
+        renderSummary(data.result);
+      } else if (data.state === "FAILURE") {
+        polling = false;
+        output.innerHTML = "<p class='text-red-500'>Failed to summarize PR.</p>";
+      } else {
+        output.innerHTML = `<p class='text-gray-500'>Processing... (${data.progress || 0}%)</p>`;
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
+  }
+
+  function escapeHtml(text) {
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;',
+    '{': '&#123;',
+    '}': '&#125;'
+  };
+  return text.replace(/[&<>"'{}]/g, m => map[m]);
+}
+
+  function renderSummary(data) {
+  const output = document.getElementById("summary-output");
+  output.innerHTML = "";
+
+  // PR Metadata
+  if (data.metadata) {
+    const meta = data.metadata;
+    const metaBlock = `
+      <div class="dark:text-white space-y-1 border-b pb-4 mb-6">
+        <h2 class="text-2xl font-bold">Title: ${meta.title}</h2>
+        <p class="text-sm text-gray-600 dark:text-gray-400">Author: ${meta.author}</p>
+        <p class="text-sm text-gray-600 dark:text-gray-400">State: ${meta.state}</p>
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+          <a href="${meta.url}" target="_blank" class="text-blue-600 dark:text-blue-400 underline">View on GitHub</a>
+        </p>
+        <form method="POST" action="/download_excel">
+          <input type="hidden" name="pr_url" value="${meta.url}">
+          <input type="hidden" name="commit_count" value="${data.commits.length}">
+          ${data.commits.map((commit, i) => `
+              <input type="hidden" name="reason_${i}" value="${escapeHtml(commit.summary || "No summary provided.")}">
+              <input type="hidden" name="file_count_${i}" value="${commit.files_changed.length}">
+              ${commit.files_changed.map((file, j) => `
+                  <input type="hidden" name="file_${i}_${j}" value="${escapeHtml(file.file_path)}">
+              `).join('')}
+          `).join('')}
+          <button type="submit" class="mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Download Excel</button>
+        </form>
+      </div>
+    `;
+    output.insertAdjacentHTML("beforeend", metaBlock);
+  }
+
+  // Show file-level summaries
+  data.commits.forEach(commit => {
+    const commitCard = document.createElement("div");
+    commitCard.className = "commit-card"
+
+
+    let filesHtml = "";
+
+    (commit.files_changed || []).forEach(file => {
+      const fileClass = file.change_type ? `${file.change_type}-file` : "";
+      const addedLines = file.added_lines?.length
+      ? `<details class="mb-4">
+          <summary class="cursor-pointer font-semibold text-green-600 dark:text-green-400">+ Added Lines</summary>
+          <div class="scroll-box bg-gray-100 dark:bg-gray-800 font-mono text-sm">
+            <pre>${escapeHtml(file.added_lines.join("\n"))}</pre>
+          </div>
+        </details>`
+      : "";
+
+
+      const removedLines = file.removed_lines?.length
+      ? `<details class="mb-4">
+          <summary class="cursor-pointer font-semibold text-red-600 dark:text-red-400">− Removed Lines</summary>
+          <div class="scroll-box bg-gray-100 dark:bg-gray-800 font-mono text-sm">
+            <pre>${escapeHtml(file.removed_lines.join("\n"))}</pre>
+          </div>
+        </details>`
+      : "";
+
+
+        filesHtml += `
+          <div class="card ${fileClass}">
+            <label class="block font-semibold">File:</label>
+            <input type="text" value="${file.file_path}" readonly class="w-full bg-gray-100 dark:bg-gray-700 text-sm font-mono rounded px-2 py-1 mb-2">
+
+            ${file.change_type === 'added' || file.change_type === 'deleted' ? "" : addedLines}
+            ${file.change_type === 'added' || file.change_type === 'deleted' ? "" : removedLines}
+          </div>
+        `;
+
+    });
+
+    commitCard.innerHTML = `
+      <h3 class="font-semibold text-lg mb-2">Commit Summary</h3>
+      <p class="italic text-sm text-gray-600 dark:text-gray-400 mb-4">${commit.summary || "No summary provided."}</p>
+      ${filesHtml}
+    `;
+
+    output.appendChild(commitCard);
+  });
+
+}
+
+</script>

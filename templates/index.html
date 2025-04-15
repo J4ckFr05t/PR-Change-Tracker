@@ -168,7 +168,7 @@
             100% { transform: rotate(360deg); }
         }
         .theme-switch {
-            position: fixed;
+            position: absolute;
             top: 1rem;
             right: 1rem;
             display: inline-block;
@@ -218,13 +218,92 @@
             transform: translateX(26px);
             content: "🌜";
             }
+
+            .flash-message {
+                padding: 0.75rem 1rem;
+                margin-bottom: 0.75rem;
+                border-radius: 8px;
+                backdrop-filter: blur(4px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                transition: opacity 0.5s ease;
+                max-width: 400px;
+                margin-inline: auto;
+                }
+
+                body.dark .flash-message {
+                background: rgba(255, 255, 255, 0.1);
+                color: #fff;
+                }
+
+                body:not(.dark) .flash-message {
+                background: rgba(0, 0, 0, 0.05);
+                color: #000;
+                }
+
+                .user-info-box {
+                    position: absolute;
+                    top: 1rem;
+                    left: 1rem;
+                    padding: 0.5rem 1rem;
+                    border-radius: 8px;
+                    background-color: var(--card-bg);
+                    color: var(--text);
+                    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+                    transition: background 0.3s, color 0.3s;
+                    font-size: 0.95rem;
+                    z-index: 1000;
+                    }
+
+                    body.dark .user-info-box {
+                    background-color: rgba(30, 30, 30, 0.85);
+                    color: #eee;
+                    }
+
+                    .flash-container {
+                        position: fixed;
+                        top: 1rem;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        z-index: 1000;
+                        width: 100%;
+                        max-width: 400px;
+                        pointer-events: none; /* prevents blocking clicks under it */
+                        }
+
+                    .flash-message {
+                        background-color: #444;
+                        color: white;
+                        padding: 1rem;
+                        margin-bottom: 0.5rem;
+                        border-radius: 0.5rem;
+                        text-align: center;
+                        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                        pointer-events: auto;
+                        }
     </style>
 </head>
 <body class="dark">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-container">
+        {% for category, message in messages %}
+          <div data-flash class="flash-message">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
     <label class="theme-switch">
         <input type="checkbox" id="theme-toggle" />
         <span class="slider"></span>
       </label>
+      {% if current_user.is_authenticated %}
+      <div class="user-info-box">
+        Logged in as <strong>{{ current_user.email }}</strong> |
+        <a href="{{ url_for('logout') }}">Logout</a>
+      </div>
+    {% endif %}    
 
     {% if not summary %}
     <div class="center-screen">
@@ -427,8 +506,17 @@
         });
     </script>
     {% endif %}
-    
-    
+    <script>
+        // Auto-hide flash messages after 3 seconds
+        setTimeout(() => {
+          const flashMessages = document.querySelectorAll('[data-flash]');
+          flashMessages.forEach(msg => {
+            msg.style.transition = 'opacity 0.5s ease';
+            msg.style.opacity = '0';
+            setTimeout(() => msg.remove(), 500);
+          });
+        }, 3000);
+      </script>
     </body>
     </html>
     
