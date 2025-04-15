@@ -44,17 +44,9 @@ Here’s a demo:
 git clone https://github.com/your-username/diffsage.git
 cd diffsage
 ```
-
-### 2. Set up Environment Variables (.env)
-
-```env
-GITHUB_API_KEY=your_personal_access_token_here
-GOOGLE_API_KEY=your_personal_access_token_here
-```
-
 ---
 
-### 3. Option A: Local Run (with Python)
+### 2. Option A: Local Run (with Python)
 
 #### Create & activate virtual environment (optional but recommended)
 
@@ -109,7 +101,7 @@ App runs at: [http://localhost:3000](http://localhost:3000)
 
 ---
 
-### 3. Option B: Run with Docker 🐳
+### 2. Option B: Run with Docker 🐳
 
 #### Build Docker image
 
@@ -121,32 +113,60 @@ docker compose up -d --build
 
 ---
 
-## 📄 Usage Workflow
+## 🚀 Usage Workflow
 
-1. Paste a GitHub PR URL (e.g., `https://github.com/user/repo/pull/42`)
-2. View parsed commit messages and file diffs
-3. Add/edit reasons for each change
-4. Click "💾 Download Excel"
-5. Excel filename will include `repo` and `PR number`, e.g.:  
-   `diffsage_openai_gym_pr42.xlsx`
+1. **Sign Up / Log In**
+   - Navigate to `/signup` to create an account.
+   - Already registered? Go to `/login` and sign in with your email and password.
 
+2. **Access the Dashboard**
+   - Upon login, you're redirected to `/dashboard`, where you’ll find:
+     - `Account Info` section
+     - `GitHub PR Summarizer` section
+
+3. **Update API Tokens**
+   - Under the `Account Info` tab:
+     - Add your **GitHub Personal Access Token** (required for PR access).
+     - Add your **Google API Token** (if used for summarization output).
+     - Submit the forms to update tokens securely.
+
+4. **Change Password (optional)**
+   - You can change your password directly from the dashboard under the same section.
+
+5. **Summarize a Pull Request**
+   - Switch to the **GitHub PR Summarizer** section.
+   - Enter a PR URL (e.g. `https://github.com/user/repo/pull/123`).
+   - The app:
+     - Parses the PR
+     - Runs AI-based analysis via a Celery background task
+     - Shows progress via a dynamic bar
+   - Once done, a detailed summary is shown and can be downloaded as an Excel file.
+
+6. **Logout**
+   - Click the "Logout" link in the sidebar.
+   - A flash message will confirm successful logout.
 ---
 
 ## 📆 Folder Structure
 
 ```
 DiffSage/
-├── app.py                 # Main Flask application
-├── celery_worker.py       # Celery worker setup
-├── tasks.py               # Celery task definitions
-├── requirements.txt       # Python dependencies
-├── Dockerfile             # Docker image configuration
-├── docker-compose.yml     # Multi-container orchestration
-├── templates/
-│   └── index.html         # HTML template for the frontend
-├── static/                # Static files (CSS, JS, images)
-├── README.md              # Project documentation
-└── .env                   # Environment variables (optional)
+├── app.py                   # Main Flask application with routes and logic
+├── celery_worker.py         # Celery worker setup for async tasks
+├── tasks.py                 # Celery task definitions
+├── github_utils.py          # Utilities for interacting with GitHub API
+├── requirements.txt         # Python dependencies
+├── Dockerfile               # Docker image configuration
+├── docker-compose.yml       # Multi-container orchestration (Flask, Redis, etc.)
+├── README.md                # Project documentation
+├── templates/               # Jinja2 HTML templates
+│   ├── login.html           # Login page
+│   ├── signup.html          # Signup page
+│   ├── user.html            # Authenticated user dashboard
+│   └── components/
+│       └── pr_summarizer.html  # Component for PR summarization UI
+├── static/                  # Static files (CSS, JS, assets)
+│   └── (your static files here)
 ```
 
 ---
