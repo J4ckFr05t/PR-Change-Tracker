@@ -378,7 +378,25 @@
       <div id="account-section" class="section active">
         <div class="account-info-section">
             <h2>Account Info</h2>
-          
+            <!-- Update GitHub Token -->
+            <form action="/update_github_token" method="post" class="form-section">
+                <h3>Update GitHub Token</h3>
+            
+                <label>GitHub Personal Access Token</label>
+                <input type="password" name="github_api_token" placeholder="ghp_..." required />
+            
+                <button type="submit">Update GitHub Token</button>
+              </form>
+            
+              <!-- Update Google API Token -->
+              <form action="/update_google_token" method="post" class="form-section">
+                <h3>Update Google API Token</h3>
+            
+                <label>Google API Token</label>
+                <input type="password" name="google_api_token" placeholder="AIza..." required />
+            
+                <button type="submit">Update Google Token</button>
+              </form>
             <!-- Change Password -->
             <form action="/update_password" method="post" class="form-section">
               <h3>Change Password</h3>
@@ -393,26 +411,6 @@
               <input type="password" name="confirm_password" placeholder="Confirm New Password" required />
           
               <button type="submit">Update Password</button>
-            </form>
-          
-            <!-- Update GitHub Token -->
-            <form action="/update_github_token" method="post" class="form-section">
-              <h3>Update GitHub Token</h3>
-          
-              <label>GitHub Personal Access Token</label>
-              <input type="password" name="github_api_token" placeholder="ghp_..." required />
-          
-              <button type="submit">Update GitHub Token</button>
-            </form>
-          
-            <!-- Update Google API Token -->
-            <form action="/update_google_token" method="post" class="form-section">
-              <h3>Update Google API Token</h3>
-          
-              <label>Google API Token</label>
-              <input type="password" name="google_api_token" placeholder="AIza..." required />
-          
-              <button type="submit">Update Google Token</button>
             </form>
         </div>
       </div>
