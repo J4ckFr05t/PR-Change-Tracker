@@ -245,22 +245,24 @@
     (commit.files_changed || []).forEach(file => {
       const fileClass = file.change_type ? `${file.change_type}-file` : "";
       const addedLines = file.added_lines?.length
-        ? `<details class="mb-4">
-            <summary class="cursor-pointer font-semibold text-green-600 dark:text-green-400">+ Added Lines</summary>
-            <div class="card added-file font-mono text-sm">
-              <pre>${escapeHtml(file.added_lines.join("\n"))}</pre>
-            </div>
-          </details>`
-        : "";
+      ? `<details class="mb-4">
+          <summary class="cursor-pointer font-semibold text-green-600 dark:text-green-400">+ Added Lines</summary>
+          <div class="scroll-box bg-gray-100 dark:bg-gray-800 font-mono text-sm">
+            <pre>${escapeHtml(file.added_lines.join("\n"))}</pre>
+          </div>
+        </details>`
+      : "";
+
 
       const removedLines = file.removed_lines?.length
-        ? `<details class="mb-4">
-            <summary class="cursor-pointer font-semibold text-red-600 dark:text-red-400">− Removed Lines</summary>
-            <div class="card deleted-file font-mono text-sm">
-              <pre>${escapeHtml(file.removed_lines.join("\n"))}</pre>
-            </div>
-          </details>`
-        : "";
+      ? `<details class="mb-4">
+          <summary class="cursor-pointer font-semibold text-red-600 dark:text-red-400">− Removed Lines</summary>
+          <div class="scroll-box bg-gray-100 dark:bg-gray-800 font-mono text-sm">
+            <pre>${escapeHtml(file.removed_lines.join("\n"))}</pre>
+          </div>
+        </details>`
+      : "";
+
 
         filesHtml += `
           <div class="card ${fileClass}">
