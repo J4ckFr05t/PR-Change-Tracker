@@ -62,7 +62,7 @@ def signup():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    session.pop('_flashes', None)  # 👈 Clear existing messages first
+    #session.pop('_flashes', None)  # 👈 Clear existing messages first
 
     if request.method == "POST":
         email = request.form.get("email")

@@ -86,6 +86,26 @@
             color: var(--text);
             box-sizing: border-box;
         }
+        input[type="text"],
+        input[type="password"],
+        input[type="email"] {
+            background-color: #111;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            width: 100%;
+            box-sizing: border-box;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* Light mode overrides */
+        body:not(.dark) input[type="text"],
+        body:not(.dark) input[type="password"],
+        body:not(.dark) input[type="email"] {
+            background-color: #f3f3f3;
+            color: #111;
+        }
 
         button {
             margin-top: 1.5rem;
@@ -443,7 +463,23 @@
             const accountSection = document.getElementById('account-section');
             const summarizerSection = document.getElementById('summarizer-section');
 
+            // Restore section from localStorage
+            const activeSection = localStorage.getItem("activeSection") || "account";
+            if (activeSection === "summarizer") {
+                summarizerLink.classList.add('active');
+                accountLink.classList.remove('active');
+                summarizerSection.classList.add('active');
+                accountSection.classList.remove('active');
+            } else {
+                accountLink.classList.add('active');
+                summarizerLink.classList.remove('active');
+                accountSection.classList.add('active');
+                summarizerSection.classList.remove('active');
+            }
+
+            // Set section on click
             accountLink.addEventListener('click', () => {
+                localStorage.setItem("activeSection", "account");
                 accountLink.classList.add('active');
                 summarizerLink.classList.remove('active');
                 accountSection.classList.add('active');
@@ -451,11 +487,13 @@
             });
 
             summarizerLink.addEventListener('click', () => {
+                localStorage.setItem("activeSection", "summarizer");
                 summarizerLink.classList.add('active');
                 accountLink.classList.remove('active');
                 summarizerSection.classList.add('active');
                 accountSection.classList.remove('active');
             });
+
         });
     </script>
     <script>
