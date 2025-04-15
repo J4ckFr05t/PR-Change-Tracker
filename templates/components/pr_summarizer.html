@@ -218,6 +218,18 @@
         <p class="text-sm text-gray-600 dark:text-gray-400">
           <a href="${meta.url}" target="_blank" class="text-blue-600 dark:text-blue-400 underline">View on GitHub</a>
         </p>
+        <form method="POST" action="/download_excel">
+          <input type="hidden" name="pr_url" value="${meta.url}">
+          <input type="hidden" name="commit_count" value="${data.commits.length}">
+          ${data.commits.map((commit, i) => `
+              <input type="hidden" name="reason_${i}" value="${escapeHtml(commit.summary || "No summary provided.")}">
+              <input type="hidden" name="file_count_${i}" value="${commit.files_changed.length}">
+              ${commit.files_changed.map((file, j) => `
+                  <input type="hidden" name="file_${i}_${j}" value="${escapeHtml(file.file_path)}">
+              `).join('')}
+          `).join('')}
+          <button type="submit" class="mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Download Excel</button>
+        </form>
       </div>
     `;
     output.insertAdjacentHTML("beforeend", metaBlock);
