@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from github_utils import get_pr_data
+import google.generativeai as genai
 from celery.result import AsyncResult
 from tasks import analyze_pr_task
 from celery_worker import celery
@@ -33,6 +34,18 @@ class User(UserMixin, db.Model):
 
     def __repr__(self):
         return f"<User {self.email}>"
+    
+def validate_google_token(token):
+    try:
+        genai.configure(api_key=token)
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        _ = model.generate_content("Hello", generation_config=genai.types.GenerationConfig(
+            temperature=0.1, max_output_tokens=10
+        ))
+        return True
+    except Exception as e:
+        print("[Token Validation Error]", e)
+        return False
     
 @login_manager.user_loader
 def load_user(user_id):
@@ -135,22 +148,31 @@ def update_google_token():
 @login_required
 def summarize():
     data = request.get_json()
-    print("Received data:", data)
+    #print("Received data:", data)
 
     pr_url = data.get("pr_url")
     if not pr_url:
         return jsonify({"error": "Missing PR URL"}), 400
+    
+    if not current_user.github_api_token or not current_user.google_api_token:
+        return jsonify({
+            "error": "Both GitHub and Google API tokens are required. Please set them up in your Account Info."
+        }), 400
+    
+    if not validate_google_token(current_user.google_api_token):
+        return jsonify({"error": "Invalid Google token. Please make sure your token is correct and try again."}), 400
+
 
     try:
         print("Parsing PR URL...")
-        repo, pr_number = parse_pr_url(pr_url)
-        print("Parsed repo:", repo, "PR number:", pr_number)
-
-        # print("[DEBUG] Current User Google Token:", current_user.google_api_token)
-        # print("[DEBUG] Current User GitHub Token:", current_user.github_api_token)
-
         user_github_token = current_user.github_api_token
-        pr_data = get_pr_data(repo, pr_number, user_github_token)
+
+        parsed = parse_github_url(pr_url)
+        pr_data = get_pr_data(parsed, current_user.github_api_token)
+
+        if "error" in pr_data:
+            print(f"[ERROR] GitHub API returned an error: {pr_data['error']}")
+            return jsonify({"error": "There was an issue with your GitHub token. Please make sure your token is correct and try again."}), 400  # Stop execution and return the error
         print("Fetched PR data.")
 
         task = analyze_pr_task.apply_async(args=[{
@@ -184,78 +206,6 @@ def show_result(task_id):
         return render_template("index.html", task_id=task.id)
     else:
         return render_template("index.html", error="Task failed or was canceled.")
-
-# @app.route("/", methods=["GET", "POST"])
-# @login_required
-# def index():
-#     summary = None
-#     error = None
-#     action = None
-#     task_id = None
-
-#     if request.method == "POST":
-#         action = request.form.get("action")
-
-#         try:
-#             if action == "analyze":
-#                 pr_url = request.form.get("pr_url")
-#                 repo, pr_number = parse_pr_url(pr_url)
-
-#                 pr_data = get_pr_data(repo, pr_number, github_token)
-
-#                 # Call the background Celery task
-#                 task = analyze_pr_task.apply_async(args=[{
-#                     "pr_data": pr_data,
-#                     "url": pr_url
-#                 }])
-#                 task_id = task.id
-
-#                 return render_template("index.html", task_id=task_id)  # UI should poll using this
-
-#             elif action == "save":
-#                 pr_url = request.form.get("pr_url")
-#                 count = int(request.form.get("commit_count"))
-#                 commits = []
-
-#                 for i in range(count):
-#                     message = request.form.get(f"commit_msg_{i}")
-#                     reason = request.form.get(f"reason_{i}")
-#                     file_count = int(request.form.get(f"file_count_{i}"))
-#                     files = []
-
-#                     for j in range(file_count):
-#                         path = request.form.get(f"file_{i}_{j}")
-#                         added = request.form.get(f"added_{i}_{j}", "").split("\n")
-#                         removed = request.form.get(f"removed_{i}_{j}", "").split("\n")
-#                         files.append({
-#                             "file_path": path,
-#                             "added_lines": added,
-#                             "removed_lines": removed
-#                         })
-
-#                     commits.append({
-#                         "message": message,
-#                         "reason": reason,
-#                         "files_changed": files
-#                     })
-
-#                 summary = {
-#                     "metadata": {
-#                         "title": "Edited Reasons",
-#                         "author": "-",
-#                         "state": "-",
-#                         "url": pr_url
-#                     },
-#                     "commits": commits
-#                 }
-
-#                 save_summary_to_json(summary)
-
-#         except Exception as e:
-#             error = str(e)
-
-#     saved = action == "save" and not error
-#     return render_template("index.html", summary=summary, error=error, saved=saved, task_id=task_id)
 
 @app.route("/")
 def root_redirect():
@@ -345,11 +295,34 @@ def download_excel():
         return f"Error creating Excel file: {str(e)}", 500
 
 
-def parse_pr_url(url):
-    parts = url.strip().split("/")
-    repo = "/".join(parts[3:5])
-    pr_number = int(parts[-1])
-    return repo, pr_number
+import re
+
+def parse_github_url(url):
+    """
+    Parses a GitHub Pull Request or Compare URL and returns a dict with type info.
+    """
+    url = url.strip()
+    pr_pattern = r"https://github\.com/([^/]+)/([^/]+)/pull/(\d+)"
+    compare_pattern = r"https://github\.com/([^/]+)/([^/]+)/compare/(.+)\.\.\.(.+)"
+
+    pr_match = re.match(pr_pattern, url)
+    if pr_match:
+        return {
+            "type": "pr",
+            "repo": f"{pr_match.group(1)}/{pr_match.group(2)}",
+            "pr_number": int(pr_match.group(3))
+        }
+
+    compare_match = re.match(compare_pattern, url)
+    if compare_match:
+        return {
+            "type": "compare",
+            "repo": f"{compare_match.group(1)}/{compare_match.group(2)}",
+            "base": compare_match.group(3),
+            "head": compare_match.group(4)
+        }
+
+    raise ValueError("Unsupported or invalid GitHub URL.")
 
 
 if __name__ == "__main__":
