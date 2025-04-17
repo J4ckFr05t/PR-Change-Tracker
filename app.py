@@ -162,6 +162,18 @@ def summarize():
     data = request.get_json()
     #print("Received data:", data)
 
+    selected_prompt = data.get("selected_prompt", "default")
+
+    if selected_prompt == "default":
+        prompt_intro = "Summarize this pull request in a concise, general overview."
+    else:
+        prompt_obj = Prompt.query.filter_by(user_id=current_user.id, prompt_name=selected_prompt).first()
+        if not prompt_obj:
+            return jsonify({"error": "Selected prompt not found."}), 400
+        prompt_intro = prompt_obj.prompt_intro
+
+    # use prompt_obj.prompt_intro or other fields as needed
+
     pr_url = data.get("pr_url")
     if not pr_url:
         return jsonify({"error": "Missing PR URL"}), 400
