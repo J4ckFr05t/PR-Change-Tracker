@@ -354,6 +354,84 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.2);
             pointer-events: auto;
             }
+
+            .select-wrapper {
+            margin-bottom: 20px;
+            }
+
+            .custom-select {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+            }
+
+            .custom-select select {
+            width: 100%;
+            padding: 10px 40px 10px 10px;
+            font-size: 16px;
+            border-radius: 8px;
+            border: 1px solid;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            transition: all 0.3s ease;
+            }
+
+            /* The dropdown arrow */
+            .select-arrow {
+            position: absolute;
+            top: 50%;
+            right: 12px;
+            pointer-events: none;
+            transform: translateY(-50%);
+            font-size: 16px;
+            }
+
+            /* Light theme */
+            body.light .custom-select select {
+            background-color: #ffffff;
+            color: #000000;
+            border-color: #ccc;
+            }
+
+            body.light .select-arrow {
+            color: #000000;
+            }
+
+            /* Dark theme */
+            body.dark .custom-select select {
+            background-color: #1e1e1e;
+            color: #ffffff;
+            border-color: #444;
+            }
+
+            body.dark .select-arrow {
+            color: #ffffff;
+            }
+
+            .select-wrapper label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem; /* adds space between label and dropdown */
+            }
+            textarea {
+            border-radius: 8px;
+            border: 1px solid #444;
+            padding: 12px;
+            width: 100%;
+            box-sizing: border-box;
+            background-color: #1c1c1c;
+            color: #fff;
+            font-size: 1rem;
+            resize: vertical;
+            }
+
+            body.light textarea {
+            background-color: #f3f3f3;
+            color: #111;
+            border-color: #ccc;
+            }
+
     </style>
 </head>
 <body class="dark">
@@ -378,6 +456,7 @@
         </div>
 
         <a href="#" id="account-link" class="active">Account Info</a>
+        <a href="#" id="prompt-link">Prompt Configurator</a>
         <a href="#" id="summarizer-link">GitHub PR Summarizer</a>
         <a href="{{ url_for('logout') }}">Logout</a>
     </div>
@@ -435,6 +514,51 @@
         </div>
       </div>
           
+        <div id="prompt-section" class="section">
+            <div class="account-info-section">
+                <h2>Prompt Configurator</h2>
+                <form action="/configure_prompt" method="post" class="form-section">
+                    <h3>Set Up a Custom Prompt</h3>
+
+                    <div class="select-wrapper">
+                        <label for="app_function">Application Function</label>
+                        <div class="custom-select">
+                          <select name="app_function" id="app_function">
+                            <option value="github_pr_summarizer">GitHub PR Summarizer</option>
+                          </select>
+                          <span class="select-arrow">&#9662;</span> <!-- ▼ arrow -->
+                        </div>
+                      </div>
+                      
+        
+                    <label for="prompt_name">Prompt Name</label>
+                    <input type="text" name="prompt_name" placeholder="e.g. Code Review Prompt" required />
+        
+                    <label for="prompt_text">Prompt Text</label>
+                    <textarea name="prompt_intro" placeholder="Enter the instruction..." rows="5" required></textarea>
+                    <button type="submit">Save Prompt</button>
+                </form>
+
+                <!-- Your Prompts Section -->
+                <div class="your-prompts-section">
+                    <h3>Your Prompts</h3>
+                    {% if prompts %}
+                        <ul>
+                            {% for prompt in prompts %}
+                                <li class="prompt-item">
+                                    <h4>{{ prompt.prompt_name }}</h4>
+                                    <p><strong>Application Function:</strong> {{ prompt.app_function }}</p>
+                                    <p><strong>Prompt Text:</strong> {{ prompt.prompt_text }}</p>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>No prompts saved yet.</p>
+                    {% endif %}
+                </div>
+
+            </div>
+        </div>
 
         <div id="summarizer-section" class="section">
             {% include "components/pr_summarizer.html" %}
@@ -462,37 +586,73 @@
             const summarizerLink = document.getElementById('summarizer-link');
             const accountSection = document.getElementById('account-section');
             const summarizerSection = document.getElementById('summarizer-section');
+            const promptLink = document.getElementById('prompt-link');
+            const promptSection = document.getElementById('prompt-section');
+
 
             // Restore section from localStorage
             const activeSection = localStorage.getItem("activeSection") || "account";
             if (activeSection === "summarizer") {
                 summarizerLink.classList.add('active');
                 accountLink.classList.remove('active');
+                promptLink.classList.remove('active');
                 summarizerSection.classList.add('active');
                 accountSection.classList.remove('active');
+                promptSection.classList.remove('active');
+            } else if (activeSection === "prompt") {
+                promptLink.classList.add('active');
+                accountLink.classList.remove('active');
+                summarizerLink.classList.remove('active');
+                promptSection.classList.add('active');
+                accountSection.classList.remove('active');
+                summarizerSection.classList.remove('active');
             } else {
                 accountLink.classList.add('active');
                 summarizerLink.classList.remove('active');
+                promptLink.classList.remove('active');
                 accountSection.classList.add('active');
                 summarizerSection.classList.remove('active');
+                promptSection.classList.remove('active');
             }
+
 
             // Set section on click
             accountLink.addEventListener('click', () => {
                 localStorage.setItem("activeSection", "account");
                 accountLink.classList.add('active');
                 summarizerLink.classList.remove('active');
+                promptLink.classList.remove('active');
+
                 accountSection.classList.add('active');
                 summarizerSection.classList.remove('active');
+                promptSection.classList.remove('active');
             });
+
 
             summarizerLink.addEventListener('click', () => {
                 localStorage.setItem("activeSection", "summarizer");
                 summarizerLink.classList.add('active');
                 accountLink.classList.remove('active');
+                promptLink.classList.remove('active');
+
                 summarizerSection.classList.add('active');
                 accountSection.classList.remove('active');
+                promptSection.classList.remove('active');
             });
+
+
+            promptLink.addEventListener('click', () => {
+                localStorage.setItem("activeSection", "prompt");
+                promptLink.classList.add('active');
+                accountLink.classList.remove('active');
+                summarizerLink.classList.remove('active');
+
+                promptSection.classList.add('active');
+                accountSection.classList.remove('active');
+                summarizerSection.classList.remove('active');
+            });
+
+
 
         });
     </script>
