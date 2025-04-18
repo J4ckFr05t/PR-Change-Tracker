@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, send_file, jsonify, redirect,
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from github_utils import get_pr_data
+from scm_utils import get_github_pr_data, get_gitlab_pr_data, get_bitbucket_pr_data
 import google.generativeai as genai
 from celery.result import AsyncResult
 from tasks import analyze_pr_task
@@ -33,6 +33,9 @@ class User(UserMixin, db.Model):
     must_change_password = db.Column(db.Boolean, default=False)
     github_api_token = db.Column(db.String(255))
     google_api_token = db.Column(db.String(255))
+    gitlab_api_token = db.Column(db.String(255))
+    bitbucket_username = db.Column(db.String(255))
+    bitbucket_app_password = db.Column(db.String(255))
     locked = db.Column(db.Boolean, default=False)
 
     def __repr__(self):
@@ -225,6 +228,37 @@ def update_google_token():
     flash("Google token updated successfully!", "success")
     return redirect(url_for("user_dashboard"))
 
+@app.route("/update_gitlab_token", methods=["POST"])
+@login_required
+def update_gitlab_token():
+    token = request.form.get("gitlab_api_token")
+
+    if not token or len(token) < 10:
+        flash("Invalid GitLab token.", "error")
+        return redirect(url_for("user_dashboard"))
+
+    current_user.gitlab_api_token = token
+    db.session.commit()
+    flash("GitLab token updated successfully!", "success")
+    return redirect(url_for("user_dashboard"))
+
+@app.route("/update_bitbucket_credentials", methods=["POST"])
+@login_required
+def update_bitbucket_credentials():
+    username = request.form.get("bitbucket_username")
+    app_password = request.form.get("bitbucket_app_password")
+
+    if not username or not app_password:
+        flash("Both Bitbucket username and app password are required.", "error")
+        return redirect(url_for("user_dashboard"))
+
+    current_user.bitbucket_username = username
+    current_user.bitbucket_app_password = app_password
+    db.session.commit()
+    flash("Bitbucket credentials updated successfully!", "success")
+    return redirect(url_for("user_dashboard"))
+
+
 @app.route("/summarize", methods=["POST"])
 @login_required
 def summarize():
@@ -232,6 +266,7 @@ def summarize():
     #print("Received data:", data)
 
     selected_prompt = data.get("selected_prompt", "default")
+    selected_platform = data.get("selected_platform", "github")
 
     if selected_prompt == "default":
         prompt_intro = "Summarize this pull request in a concise, general overview."
@@ -258,10 +293,22 @@ def summarize():
 
     try:
         print("Parsing PR URL...")
-        user_github_token = current_user.github_api_token
 
-        parsed = parse_github_url(pr_url)
-        pr_data = get_pr_data(parsed, current_user.github_api_token)
+        if selected_platform == "github":
+            user_token = current_user.github_api_token
+            parsed = parse_github_url(pr_url)
+            pr_data = get_github_pr_data(parsed, user_token)
+        elif selected_platform == "gitlab":
+            user_token = current_user.gitlab_api_token
+            parsed = parse_gitlab_url(pr_url)
+            pr_data = get_gitlab_pr_data(parsed, user_token)
+        elif selected_platform == "bitbucket":
+            user_token = current_user.bitbucket_app_password
+            bb_username = current_user.bitbucket_username
+            parsed = parse_bitbucket_url(pr_url)
+            pr_data = get_bitbucket_pr_data(parsed, bb_username, user_token)
+        else:
+            return jsonify({"error": "Unsupported platform selected."}), 400
 
         if "error" in pr_data:
             print(f"[ERROR] GitHub API returned an error: {pr_data['error']}")
@@ -453,9 +500,6 @@ def download_excel():
     except Exception as e:
         return f"Error creating Excel file: {str(e)}", 500
 
-
-import re
-
 def parse_github_url(url):
     """
     Parses a GitHub Pull Request or Compare URL and returns a dict with type info.
@@ -482,6 +526,45 @@ def parse_github_url(url):
         }
 
     raise ValueError("Unsupported or invalid GitHub URL.")
+
+def parse_gitlab_url(url):
+    """
+    Parses a GitLab Merge Request (MR) URL and returns a dict with type info.
+    """
+    url = url.strip()
+    mr_pattern = r"https://gitlab\.com/([^/]+(?:/[^/]+)*)/-/merge_requests/(\d+)"
+
+    mr_match = re.match(mr_pattern, url)
+    print(mr_match)
+    if mr_match:
+        return {
+            "url": url,
+            "type": "mr",  # Merge Request in GitLab
+            "repo": mr_match.group(1),
+            "mr_id": int(mr_match.group(2))
+        }
+
+    raise ValueError("Unsupported or invalid GitLab Merge Request URL.")
+
+def parse_bitbucket_url(url):
+    """
+    Parses a Bitbucket Pull Request URL and returns a dict with type info.
+    """
+    url = url.strip()
+    pr_pattern = r"https://bitbucket\.org/([^/]+)/([^/]+)/pull-requests/(\d+)"
+
+    pr_match = re.match(pr_pattern, url)
+    print(url,pr_match)
+    if pr_match:
+        return {
+            "url": url,
+            "type": "pr",  # Pull Request in Bitbucket
+            "workspace": pr_match.group(1),
+            "repo": pr_match.group(2),
+            "pr_id": int(pr_match.group(3))
+        }
+
+    raise ValueError("Unsupported or invalid Bitbucket Pull Request URL.")
 
 
 if __name__ == "__main__":

@@ -601,7 +601,7 @@
         <a href="#" id="manage-users-link">Manage Users</a>
         {% endif %}        
         <a href="#" id="prompt-link">Prompt Configurator</a>
-        <a href="#" id="summarizer-link">GitHub PR Summarizer</a>
+        <a href="#" id="summarizer-link">GitBrief</a>
         <a href="{{ url_for('logout') }}">Logout</a>
     </div>
 
@@ -640,6 +640,24 @@
             
                 <button type="submit">Update Google Token</button>
               </form>
+
+            <!-- Update GitLab API Token -->
+            <form action="/update_gitlab_token" method="post" class="form-section">
+                <h3>Update GitLab API Token</h3>
+                <label>GitLab API Token</label>
+                <input type="password" name="gitlab_api_token" placeholder="glpat-..." required />
+                <button type="submit">Update GitLab Token</button>
+            </form>
+
+            <!-- Update Bitbucket Username and App Password -->
+            <form action="/update_bitbucket_credentials" method="post" class="form-section">
+                <h3>Update Bitbucket Credentials</h3>
+                <label>Bitbucket Username</label>
+                <input type="text" name="bitbucket_username" placeholder="bitbucket_username" required />
+                <label>Bitbucket App Password</label>
+                <input type="password" name="bitbucket_app_password" placeholder="bitbucket_app_password" required />
+                <button type="submit">Update Bitbucket Credentials</button>
+            </form>
             <!-- Change Password -->
             <form action="/update_password" method="post" class="form-section">
               <h3>Change Password</h3>
@@ -725,7 +743,7 @@
                         <label for="app_function">Application Function</label>
                         <div class="custom-select">
                           <select name="app_function" id="app_function">
-                            <option value="GitHub PR Summarizer">GitHub PR Summarizer</option>
+                            <option value="GitBrief">GitBrief</option>
                           </select>
                           <span class="select-arrow">&#9662;</span> <!-- ▼ arrow -->
                         </div>
