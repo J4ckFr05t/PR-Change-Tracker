@@ -9,10 +9,11 @@ def analyze_pr_task(self, pr_commits_and_metadata):
         pr_data = pr_commits_and_metadata["pr_data"]
         commits = pr_data["commits"]
         google_token = pr_commits_and_metadata.get("google_token")
+        prompt_intro = pr_commits_and_metadata.get("prompt_intro")
         #print("[DEBUG] Google token in Celery task:", google_token)
 
         # Analyze diffs (with progress tracking)
-        grouped_data = parse_diff_by_commit(commits, self, google_token=google_token)
+        grouped_data = parse_diff_by_commit(commits, self, google_token=google_token, prompt_intro=prompt_intro)
 
         # Full summary (matches original code)
         summary = {

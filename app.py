@@ -202,7 +202,8 @@ def summarize():
         task = analyze_pr_task.apply_async(args=[{
             "pr_data": pr_data,
             "url": pr_url,
-            "google_token": current_user.google_api_token
+            "google_token": current_user.google_api_token,
+            "prompt_intro": prompt_intro
         }])
         print("Task ID:", task.id)
 
