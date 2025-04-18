@@ -29,8 +29,11 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)  # Unique ID
     email = db.Column(db.String(150), unique=True, nullable=False)  # User's email (used for login)
     password = db.Column(db.String(150), nullable=False)  # Hashed password
+    is_admin = db.Column(db.Boolean, default=False)
+    must_change_password = db.Column(db.Boolean, default=False)
     github_api_token = db.Column(db.String(255))
     google_api_token = db.Column(db.String(255))
+    locked = db.Column(db.Boolean, default=False)
 
     def __repr__(self):
         return f"<User {self.email}>"
@@ -86,15 +89,22 @@ def signup():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    #session.pop('_flashes', None)  # 👈 Clear existing messages first
-
     if request.method == "POST":
         email = request.form.get("email")
         password = request.form.get("password")
 
         user = User.query.filter_by(email=email).first()
         if user and check_password_hash(user.password, password):
+            if user.locked:
+                flash("Your account has been locked. Contact admin.", "danger")
+                return redirect(url_for("login"))
+            
             login_user(user)
+
+            if user.must_change_password:
+                flash("Please change your password before continuing.", "warning")
+                return redirect(url_for("force_password_change"))
+
             flash("Logged in successfully.", "success")
             return redirect(url_for("user_dashboard"))
         else:
@@ -102,11 +112,70 @@ def login():
 
     return render_template("login.html")
 
+@app.route("/force_password_change", methods=["GET", "POST"])
+@login_required
+def force_password_change():
+    if request.method == "POST":
+        new_password = request.form.get("new_password")
+        confirm_password = request.form.get("confirm_password")
+
+        if new_password != confirm_password:
+            flash("Passwords do not match.", "danger")
+            return redirect(url_for("force_password_change"))
+
+        current_user.password = generate_password_hash(new_password)
+        current_user.must_change_password = False  # ✅ mark password change complete
+        db.session.commit()
+
+        flash("Password updated successfully.", "success")
+        return redirect(url_for("user_dashboard"))  # 👈 send user to dashboard
+
+    return render_template("force_password_change.html")
+
+@app.route("/admin/delete_user/<int:user_id>", methods=["POST"])
+@login_required
+def delete_user(user_id):
+    if not current_user.is_admin:
+        flash("Unauthorized.", "danger")
+        return redirect(url_for("user_dashboard"))
+
+    user = User.query.get_or_404(user_id)
+    if user.id == current_user.id:
+        flash("You can't delete your own account here.", "warning")
+        return redirect(url_for("user_dashboard"))
+
+    Prompt.query.filter_by(user_id=user.id).delete()
+    db.session.delete(user)
+    db.session.commit()
+    flash(f"User {user.email} deleted.", "success")
+    return redirect(url_for("user_dashboard"))
+
+@app.route("/admin/toggle_lock_user/<int:user_id>", methods=["POST"])
+@login_required
+def toggle_lock_user(user_id):
+    if not current_user.is_admin:
+        flash("Unauthorized.", "danger")
+        return redirect(url_for("user_dashboard"))
+
+    user = User.query.get_or_404(user_id)
+    if user.id == current_user.id:
+        flash("You can't lock yourself.", "warning")
+        return redirect(url_for("user_dashboard"))
+
+    user.locked = not user.locked
+    db.session.commit()
+    status = "locked" if user.locked else "unlocked"
+    flash(f"User {user.email} has been {status}.", "info")
+    return redirect(url_for("user_dashboard"))
+
 @app.route("/dashboard")
 @login_required
 def user_dashboard():
     prompts = Prompt.query.filter_by(user_id=current_user.id).all()
-    return render_template("user.html", user_email=current_user.email, prompts=prompts)
+    users = []
+    if current_user.is_admin:
+        users = User.query.all()
+    return render_template("user.html", user_email=current_user.email, users=users, is_admin=current_user.is_admin, prompts=prompts)
 
 @app.route("/update_password", methods=["POST"])
 @login_required
@@ -418,4 +487,18 @@ def parse_github_url(url):
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()  # Automatically create tables if they don't exist
+
+        admin_email = "admin@test.com"
+        existing_admin = User.query.filter_by(email=admin_email).first()
+        if not existing_admin:
+            admin_user = User(
+                email=admin_email,
+                password=generate_password_hash("admin"),
+                is_admin=True,
+                must_change_password=True
+            )
+            db.session.add(admin_user)
+            db.session.commit()
+            print(f"[INIT] Admin account created: {admin_email} / admin")
+
     app.run(host="0.0.0.0", port=3000, debug=True)
