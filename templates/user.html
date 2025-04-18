@@ -5,15 +5,25 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:400,600">
     <style>
         :root {
-            --bg: #f4f4f4;
-            --text: #000;
-            --input-bg: #fff;
+        --bg: #f4f4f4;
+        --text: #000;
+        --input-bg: #fff;
+
+        --card-bg: #fefefe;
+        --card-text: #1a1a1a;
+        --tag-bg: #e0e0e0;
+        --tag-text: #333;
         }
 
         body.dark {
-            --bg: #121212;
-            --text: #eaeaea;
-            --input-bg: #1f1f1f;
+        --bg: #121212;
+        --text: #eaeaea;
+        --input-bg: #1f1f1f;
+
+        --card-bg: #1e1e1e;
+        --card-text: #f5f5f5;
+        --tag-bg: #333;
+        --tag-text: #ddd;
         }
 
         body {
@@ -74,38 +84,54 @@
             margin-top: 1rem;
         }
 
-        input[type="text"],
-        input[type="password"] {
-            width: 100%;
-            padding: 0.75rem;
-            margin-top: 0.3rem;
-            border: 1px solid #aaa;
-            border-radius: 10px;
-            font-size: 1rem;
-            background: var(--input-bg);
-            color: var(--text);
-            box-sizing: border-box;
-        }
+        /* General Input Styles */
         input[type="text"],
         input[type="password"],
         input[type="email"] {
-            background-color: #111;
-            color: #fff;
-            border: none;
-            border-radius: 8px;
             padding: 12px;
             width: 100%;
             box-sizing: border-box;
+            border-radius: 8px;
             transition: background-color 0.3s, color 0.3s;
         }
 
-        /* Light mode overrides */
+        /* Light Mode Input Styles */
         body:not(.dark) input[type="text"],
         body:not(.dark) input[type="password"],
         body:not(.dark) input[type="email"] {
+            background-color: #f3f3f3; /* Light background */
+            color: #111;               /* Dark text */
+            border-color: #ccc;        /* Lighter border */
+        }
+
+        /* Dark Mode Input Styles */
+        body.dark input[type="text"],
+        body.dark input[type="password"],
+        body.dark input[type="email"] {
+            background-color: #1f1f1f; /* Dark background */
+            color: #fff;               /* Light text */
+            border-color: #444;        /* Darker border */
+        }
+
+        textarea {
+            border-radius: 8px;
+            border: 1px solid #444;
+            padding: 12px;
+            width: 100%;
+            box-sizing: border-box;
+            background-color: #111;
+            color: #fff;
+            font-size: 1rem;
+            resize: vertical;
+        }
+
+        /* Light mode for textarea */
+        body:not(.dark) textarea {
             background-color: #f3f3f3;
             color: #111;
+            border-color: #ccc;
         }
+
 
         button {
             margin-top: 1.5rem;
@@ -354,6 +380,144 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.2);
             pointer-events: auto;
             }
+
+            .select-wrapper {
+            margin-bottom: 20px;
+            }
+
+            .custom-select {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+            }
+
+            .custom-select select {
+            width: 100%;
+            padding: 10px 40px 10px 10px;
+            font-size: 16px;
+            border-radius: 8px;
+            border: 1px solid;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            transition: all 0.3s ease;
+            }
+
+            /* The dropdown arrow */
+            .select-arrow {
+            position: absolute;
+            top: 50%;
+            right: 12px;
+            pointer-events: none;
+            transform: translateY(-50%);
+            font-size: 16px;
+            }
+
+            /* Light theme */
+            body.light .custom-select select {
+            background-color: #ffffff;
+            color: #000000;
+            border-color: #ccc;
+            }
+
+            body.light .select-arrow {
+            color: #000000;
+            }
+
+            /* Dark theme */
+            body.dark .custom-select select {
+            background-color: #1e1e1e;
+            color: #ffffff;
+            border-color: #444;
+            }
+
+            body.dark .select-arrow {
+            color: #ffffff;
+            }
+
+            .select-wrapper label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem; /* adds space between label and dropdown */
+            }
+            textarea {
+            border-radius: 8px;
+            border: 1px solid #444;
+            padding: 12px;
+            width: 100%;
+            box-sizing: border-box;
+            background-color: #1c1c1c;
+            color: #fff;
+            font-size: 1rem;
+            resize: vertical;
+            }
+
+            body.light textarea {
+            background-color: #f3f3f3;
+            color: #111;
+            border-color: #ccc;
+            }
+            .prompt-card-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+            }
+
+            .prompt-card {
+            background-color: var(--card-bg);
+            color: var(--card-text);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            }
+
+
+            .prompt-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            }
+
+            .prompt-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin: 0;
+            }
+
+            .prompt-tag {
+            background-color: var(--tag-bg);
+            color: var(--tag-text);
+            font-size: 0.85rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 8px;
+            display: inline-block;
+            margin: 0.75rem 0;
+            }
+
+
+            .prompt-text {
+            font-size: 0.95rem;
+            color: inherit;
+            line-height: 1.4;
+            }
+
+            /* Delete button */
+            .delete-btn {
+            background: transparent;
+            border: none;
+            color: #888;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: color 0.2s ease;
+            }
+            .delete-btn:hover {
+            color: #e74c3c;
+            }
+
     </style>
 </head>
 <body class="dark">
@@ -378,6 +542,7 @@
         </div>
 
         <a href="#" id="account-link" class="active">Account Info</a>
+        <a href="#" id="prompt-link">Prompt Configurator</a>
         <a href="#" id="summarizer-link">GitHub PR Summarizer</a>
         <a href="{{ url_for('logout') }}">Logout</a>
     </div>
@@ -432,9 +597,82 @@
           
               <button type="submit">Update Password</button>
             </form>
+
+            <!-- Delete Account -->
+            <div class="form-section">
+                <h3>Delete Account</h3>
+                <p style="color: #b00020;">
+                Deleting your account is irreversible. All your saved prompts and tokens will be permanently removed.
+                </p>
+                <button type="button" onclick="showDeleteConfirmation()" class="btn btn-danger">Delete My Account</button>
+            </div>
+            
+            <!-- Confirmation Modal -->
+            <div id="deleteModal" class="modal-overlay" style="display:none;">
+                <div class="modal-content">
+                <h3>Confirm Account Deletion</h3>
+                <p>Are you absolutely sure you want to delete your account? This action cannot be undone.</p>
+                <form action="/delete_account" method="POST">
+                    <button type="submit" class="btn btn-danger">Yes, Delete My Account</button>
+                    <button type="button" onclick="closeDeleteModal()" class="btn">Cancel</button>
+                </form>
+                </div>
+            </div>
+  
         </div>
       </div>
           
+        <div id="prompt-section" class="section">
+            <div class="account-info-section">
+                <h2>Prompt Configurator</h2>
+                <form action="/configure_prompt" method="post" class="form-section">
+                    <h3>Set Up a Custom Prompt</h3>
+
+                    <div class="select-wrapper">
+                        <label for="app_function">Application Function</label>
+                        <div class="custom-select">
+                          <select name="app_function" id="app_function">
+                            <option value="GitHub PR Summarizer">GitHub PR Summarizer</option>
+                          </select>
+                          <span class="select-arrow">&#9662;</span> <!-- ▼ arrow -->
+                        </div>
+                      </div>
+                      
+        
+                    <label for="prompt_name">Prompt Name</label>
+                    <input type="text" name="prompt_name" placeholder="e.g. Code Review Prompt" required />
+        
+                    <label for="prompt_intro">Prompt Text</label>
+                    <textarea name="prompt_intro" placeholder="Enter the instruction..." rows="5" required></textarea>
+                    <button type="submit">Save Prompt</button>
+                </form>
+
+                <!-- Your Prompts Section -->
+                <div class="your-prompts-section">
+                    <h3>Your Prompts</h3>
+                    {% if prompts %}
+                      <div class="prompt-card-container">
+                        {% for prompt in prompts %}
+                          <div class="prompt-card">
+                            <div class="prompt-card-header">
+                              <h4 class="prompt-title">{{ prompt.prompt_name }}</h4>
+                              <form method="POST" action="{{ url_for('delete_prompt') }}">
+                                <input type="hidden" name="prompt_name" value="{{ prompt.prompt_name }}">
+                                <button type="submit" class="delete-btn" title="Delete Prompt">✕</button>
+                              </form>
+                            </div>
+                            <span class="prompt-tag">{{ prompt.app_function.replace('_', ' ').title() }}</span>
+                            <p class="prompt-text">{{ prompt.prompt_intro }}</p>
+                          </div>
+                        {% endfor %}
+                      </div>
+                    {% else %}
+                      <p>No prompts saved yet.</p>
+                    {% endif %}
+                </div>                  
+
+            </div>
+        </div>
 
         <div id="summarizer-section" class="section">
             {% include "components/pr_summarizer.html" %}
@@ -462,37 +700,73 @@
             const summarizerLink = document.getElementById('summarizer-link');
             const accountSection = document.getElementById('account-section');
             const summarizerSection = document.getElementById('summarizer-section');
+            const promptLink = document.getElementById('prompt-link');
+            const promptSection = document.getElementById('prompt-section');
+
 
             // Restore section from localStorage
             const activeSection = localStorage.getItem("activeSection") || "account";
             if (activeSection === "summarizer") {
                 summarizerLink.classList.add('active');
                 accountLink.classList.remove('active');
+                promptLink.classList.remove('active');
                 summarizerSection.classList.add('active');
                 accountSection.classList.remove('active');
+                promptSection.classList.remove('active');
+            } else if (activeSection === "prompt") {
+                promptLink.classList.add('active');
+                accountLink.classList.remove('active');
+                summarizerLink.classList.remove('active');
+                promptSection.classList.add('active');
+                accountSection.classList.remove('active');
+                summarizerSection.classList.remove('active');
             } else {
                 accountLink.classList.add('active');
                 summarizerLink.classList.remove('active');
+                promptLink.classList.remove('active');
                 accountSection.classList.add('active');
                 summarizerSection.classList.remove('active');
+                promptSection.classList.remove('active');
             }
+
 
             // Set section on click
             accountLink.addEventListener('click', () => {
                 localStorage.setItem("activeSection", "account");
                 accountLink.classList.add('active');
                 summarizerLink.classList.remove('active');
+                promptLink.classList.remove('active');
+
                 accountSection.classList.add('active');
                 summarizerSection.classList.remove('active');
+                promptSection.classList.remove('active');
             });
+
 
             summarizerLink.addEventListener('click', () => {
                 localStorage.setItem("activeSection", "summarizer");
                 summarizerLink.classList.add('active');
                 accountLink.classList.remove('active');
+                promptLink.classList.remove('active');
+
                 summarizerSection.classList.add('active');
                 accountSection.classList.remove('active');
+                promptSection.classList.remove('active');
             });
+
+
+            promptLink.addEventListener('click', () => {
+                localStorage.setItem("activeSection", "prompt");
+                promptLink.classList.add('active');
+                accountLink.classList.remove('active');
+                summarizerLink.classList.remove('active');
+
+                promptSection.classList.add('active');
+                accountSection.classList.remove('active');
+                summarizerSection.classList.remove('active');
+            });
+
+
 
         });
     </script>
@@ -515,5 +789,13 @@
           });
         }, 3000);
       </script>
+    <script>
+        function showDeleteConfirmation() {
+        document.getElementById("deleteModal").style.display = "flex";
+        }
+        function closeDeleteModal() {
+        document.getElementById("deleteModal").style.display = "none";
+        }
+    </script>
 </body>
 </html>

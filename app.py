@@ -35,6 +35,17 @@ class User(UserMixin, db.Model):
     def __repr__(self):
         return f"<User {self.email}>"
     
+class Prompt(db.Model):
+    __tablename__ = "prompts"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    prompt_name = db.Column(db.String(150), nullable=False)
+    prompt_intro = db.Column(db.Text, nullable=False)
+    app_function = db.Column(db.String(100), nullable=False)
+
+    __table_args__ = (db.UniqueConstraint('user_id', 'prompt_name', name='unique_user_prompt'),)
+    
 def validate_google_token(token):
     try:
         genai.configure(api_key=token)
@@ -94,7 +105,8 @@ def login():
 @app.route("/dashboard")
 @login_required
 def user_dashboard():
-    return render_template("user.html", user_email=current_user.email)
+    prompts = Prompt.query.filter_by(user_id=current_user.id).all()
+    return render_template("user.html", user_email=current_user.email, prompts=prompts)
 
 @app.route("/update_password", methods=["POST"])
 @login_required
@@ -150,6 +162,18 @@ def summarize():
     data = request.get_json()
     #print("Received data:", data)
 
+    selected_prompt = data.get("selected_prompt", "default")
+
+    if selected_prompt == "default":
+        prompt_intro = "Summarize this pull request in a concise, general overview."
+    else:
+        prompt_obj = Prompt.query.filter_by(user_id=current_user.id, prompt_name=selected_prompt).first()
+        if not prompt_obj:
+            return jsonify({"error": "Selected prompt not found."}), 400
+        prompt_intro = prompt_obj.prompt_intro
+
+    # use prompt_obj.prompt_intro or other fields as needed
+
     pr_url = data.get("pr_url")
     if not pr_url:
         return jsonify({"error": "Missing PR URL"}), 400
@@ -178,7 +202,8 @@ def summarize():
         task = analyze_pr_task.apply_async(args=[{
             "pr_data": pr_data,
             "url": pr_url,
-            "google_token": current_user.google_api_token
+            "google_token": current_user.google_api_token,
+            "prompt_intro": prompt_intro
         }])
         print("Task ID:", task.id)
 
@@ -187,6 +212,71 @@ def summarize():
     except Exception as e:
         print("Error during summarization:", e)
         return jsonify({"error": str(e)}), 500
+    
+@app.route("/configure_prompt", methods=["POST"])
+@login_required
+def configure_prompt():
+    app_function = request.form.get("app_function")
+    prompt_name = request.form.get("prompt_name")
+    prompt_intro = request.form.get("prompt_intro")
+
+    if not all([app_function, prompt_name, prompt_intro]):
+        flash("All prompt fields are required.", "error")
+        return redirect(url_for("user_dashboard"))
+
+    # Check if prompt with same name already exists for this user
+    existing = Prompt.query.filter_by(user_id=current_user.id, prompt_name=prompt_name).first()
+    if existing:
+        flash("You already have a prompt with that name. Please use a different name.", "error")
+        return redirect(url_for("user_dashboard"))
+
+    new_prompt = Prompt(
+        user_id=current_user.id,
+        app_function=app_function,
+        prompt_name=prompt_name,
+        prompt_intro=prompt_intro
+    )
+    db.session.add(new_prompt)
+    db.session.commit()
+    flash("Prompt saved successfully!", "success")
+    return redirect(url_for("user_dashboard"))
+
+@app.route("/delete_prompt", methods=["POST"])
+@login_required
+def delete_prompt():
+    prompt_name = request.form.get("prompt_name")
+
+    # Find the prompt by name (assuming prompt_name is unique)
+    prompt_to_delete = Prompt.query.filter_by(user_id=current_user.id, prompt_name=prompt_name).first()
+
+    if prompt_to_delete:
+        db.session.delete(prompt_to_delete)
+        db.session.commit()
+        flash(f"Prompt '{prompt_name}' deleted successfully.", "success")
+    else:
+        flash("Prompt not found or already deleted.", "danger")
+    
+    return redirect(url_for("user_dashboard"))
+
+@app.route("/delete_account", methods=["POST"])
+@login_required
+def delete_account():
+    try:
+        # Delete all prompts belonging to the user
+        Prompt.query.filter_by(user_id=current_user.id).delete()
+
+        # Then delete the user
+        user_email = current_user.email  # Save for feedback
+        db.session.delete(current_user)
+        db.session.commit()
+        logout_user()
+
+        flash(f"Account {user_email} has been deleted.", "success")
+        return redirect(url_for("signup"))
+    except Exception as e:
+        print("[Account Deletion Error]", e)
+        flash("An error occurred while deleting your account.", "danger")
+        return redirect(url_for("user_dashboard"))
 
 
 @app.route("/logout")

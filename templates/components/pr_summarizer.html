@@ -1,6 +1,15 @@
 <div>
   <h2>GitHub PR Summarizer</h2>
+  <p style="font-size: 0.9rem; color: #6b7280; margin-top: -0.5rem; margin-bottom: 1rem; font-style: italic;">
+    Choose a desired prompt from the dropdown. If none is selected, the default prompt will be used.
+  </p>  
   <input type="text" id="pr-url" placeholder="Enter PR URL..." />
+  <select id="summary-type">
+    <option value="default">Default</option>
+    {% for prompt in prompts if prompt.app_function == "GitHub PR Summarizer" %}
+      <option value="{{ prompt.prompt_name }}">{{ prompt.prompt_name }}</option>
+    {% endfor %}
+  </select>  
   <button id="summarize-btn">Summarize</button>
   <div id="summary-output" class="mt-6 space-y-6"></div>
 </div>
@@ -197,6 +206,23 @@
     word-break: break-word;
   }
 
+  #summary-type {
+    padding: 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background-color: #fff;
+    color: #111;
+    margin-bottom: 1rem;
+    width: 180px;
+    max-width: 500px;
+    box-sizing: border-box;
+  }
+
+  .dark #summary-type {
+    background-color: #1f2937;
+    color: #f3f4f6;
+    border: 1px solid #374151;
+  }
 </style>
 
 <script>
@@ -215,10 +241,15 @@
       output.innerHTML = "<p class='text-gray-500'>Submitting...</p>";
 
       try {
+        const summaryType = document.getElementById("summary-type").value;
+
         const response = await fetch("/summarize", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pr_url: prUrl })
+          body: JSON.stringify({
+            pr_url: prUrl,
+            selected_prompt: summaryType
+          })
         });
 
         const result = await response.json();
