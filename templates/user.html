@@ -545,6 +545,20 @@
             width: 16px;
             height: 16px;
         }
+        .prompt-delete-btn {
+        background-color: #e74c3c;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
     </style>
 </head>
 <body class="dark">
@@ -723,7 +737,7 @@
                               <h4 class="prompt-title">{{ prompt.prompt_name }}</h4>
                               <form method="POST" action="{{ url_for('delete_prompt') }}">
                                 <input type="hidden" name="prompt_name" value="{{ prompt.prompt_name }}">
-                                <button type="submit" class="delete-btn" title="Delete Prompt">✕</button>
+                                <button type="submit" class="prompt-delete-btn" title="Delete Prompt">✕</button>
                               </form>
                             </div>
                             <span class="prompt-tag">{{ prompt.app_function.replace('_', ' ').title() }}</span>
