@@ -298,21 +298,27 @@ def summarize():
             user_token = current_user.github_api_token
             parsed = parse_github_url(pr_url)
             pr_data = get_github_pr_data(parsed, user_token)
+            if "error" in pr_data:
+                print(f"[ERROR] GitHub API returned an error: {pr_data['error']}")
+                return jsonify({"error": "There was an issue with your GitHub token. Please make sure your token is correct and try again."}), 400  # Stop execution and return the error
         elif selected_platform == "gitlab":
             user_token = current_user.gitlab_api_token
             parsed = parse_gitlab_url(pr_url)
             pr_data = get_gitlab_pr_data(parsed, user_token)
+            if "error" in pr_data:
+                print(f"[ERROR] GitHub API returned an error: {pr_data['error']}")
+                return jsonify({"error": "There was an issue with your GitLab token. Please make sure your token is correct and try again."}), 400  # Stop execution and return the error
         elif selected_platform == "bitbucket":
             user_token = current_user.bitbucket_app_password
             bb_username = current_user.bitbucket_username
             parsed = parse_bitbucket_url(pr_url)
             pr_data = get_bitbucket_pr_data(parsed, bb_username, user_token)
+            if "error" in pr_data:
+                print(f"[ERROR] GitHub API returned an error: {pr_data['error']}")
+                return jsonify({"error": "There was an issue with your Bitbucket Username or App Password. Please make sure your token is correct and try again."}), 400  # Stop execution and return the error
         else:
             return jsonify({"error": "Unsupported platform selected."}), 400
 
-        if "error" in pr_data:
-            print(f"[ERROR] GitHub API returned an error: {pr_data['error']}")
-            return jsonify({"error": "There was an issue with your GitHub token. Please make sure your token is correct and try again."}), 400  # Stop execution and return the error
         print("Fetched PR data.")
 
         task = analyze_pr_task.apply_async(args=[{
