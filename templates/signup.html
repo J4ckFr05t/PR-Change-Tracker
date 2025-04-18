@@ -209,9 +209,28 @@
             pointer-events: auto;
             }
 
+            @keyframes animatedGradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+            }
+
+            body.login-gradient-light {
+            background: linear-gradient(-45deg, #e0f7fa, #f3e5f5, #fbe9e7, #e8f5e9);
+            background-size: 400% 400%;
+            animation: animatedGradient 18s ease infinite;
+            }
+
+            body.dark.login-gradient-dark {
+            background: linear-gradient(-45deg, #1e1e2f, #121212, #2b2b3b, #191919);
+            background-size: 400% 400%;
+            animation: animatedGradient 18s ease infinite;
+            }
+
+
     </style>
 </head>
-<body class="dark">
+<body class="dark login-gradient-dark">
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       <div class="flash-container">
@@ -249,7 +268,11 @@
 
     <script>
         function applyTheme(theme) {
-            document.body.classList.toggle("dark", theme === "dark");
+            const body = document.body;
+            body.classList.toggle("dark", theme === "dark");
+            body.classList.remove("login-gradient-dark", "login-gradient-light");
+            body.classList.add(theme === "dark" ? "login-gradient-dark" : "login-gradient-light");
+
             document.getElementById("theme-toggle").checked = theme === "dark";
         }
 
