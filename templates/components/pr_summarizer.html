@@ -1,12 +1,12 @@
 <div>
-  <h2>GitScope</h2>
+  <h2>GitDecode</h2>
   <p style="font-size: 0.9rem; color: #6b7280; margin-top: -0.5rem; margin-bottom: 1rem; font-style: italic;">
     Choose a desired prompt and platform from the dropdown. If none is selected, the default prompt and platform will be used.
   </p>  
   <input type="text" id="pr-url" placeholder="Enter PR URL..." />
   <select id="summary-type">
     <option value="default">Default Prompt</option>
-    {% for prompt in prompts if prompt.app_function == "GitScope" %}
+    {% for prompt in prompts if prompt.app_function == "GitDecode" %}
       <option value="{{ prompt.prompt_name }}">{{ prompt.prompt_name }}</option>
     {% endfor %}
   </select>
