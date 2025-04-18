@@ -240,8 +240,8 @@
         }
 
         .user-avatar {
-            width: 42px;
-            height: 42px;
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
             object-fit: cover;
         }
@@ -303,8 +303,6 @@
             padding: 2rem;
             max-width: 800px;
         }
-
-
         .form-section {
         display: flex;
         flex-direction: column;
@@ -517,7 +515,36 @@
             .delete-btn:hover {
             color: #e74c3c;
             }
+            .action-btn {
+            background-color: #3b82f6;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            }
 
+        .action-btn:hover {
+            background-color: #2563eb;
+            }
+
+        .delete-btn {
+            background-color: #ef4444;
+        }
+
+        .delete-btn:hover {
+            background-color: #dc2626;
+        }
+
+        .action-btn img {
+            width: 16px;
+            height: 16px;
+        }
     </style>
 </head>
 <body class="dark">
@@ -542,6 +569,9 @@
         </div>
 
         <a href="#" id="account-link" class="active">Account Info</a>
+        {% if is_admin %}
+        <a href="#" id="manage-users-link">Manage Users</a>
+        {% endif %}        
         <a href="#" id="prompt-link">Prompt Configurator</a>
         <a href="#" id="summarizer-link">GitHub PR Summarizer</a>
         <a href="{{ url_for('logout') }}">Logout</a>
@@ -621,6 +651,41 @@
   
         </div>
       </div>
+
+      {% if is_admin %}
+      <div id="manage-users-section" class="section">
+        <div class="account-info-section">
+            <h2>Manage Users</h2>
+            <div style="display: flex; flex-wrap: wrap; gap: 1rem;">
+                {% for user in users %}
+                <div style="background: var(--card-bg); color: var(--card-text); padding: 1rem; border-radius: 12px; width: 100%; max-width: 320px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 1rem;">
+                    <img src="https://bootdey.com/img/Content/avatar/avatar1.png" class="user-avatar" alt="User Avatar">
+                    <div style="flex: 1;">
+                        <strong>{{ user.email }}</strong><br>
+                        <small>{% if user.is_admin %}Admin{% else %}User{% endif %} | {% if user.locked %}Locked{% else %}Active{% endif %}</small>
+                        <div style="margin-top: 0.5rem;">
+                            {% if user.id != current_user.id %}
+                            <form method="POST" action="{{ url_for('delete_user', user_id=user.id) }}" style="display:inline;">
+                                <button type="submit" class="action-btn delete-btn" onclick="return confirm('Delete user {{ user.email }}?')">
+                                    🗑️ Delete
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ url_for('toggle_lock_user', user_id=user.id) }}" style="display:inline;">
+                                <button type="submit" class="action-btn" style="margin-left: 0.5rem;">
+                                    {% if user.locked %} 🔓 Unlock {% else %} 🔒 Lock {% endif %}
+                                </button>
+                            </form>
+                            {% else %}
+                            <span style="color: gray;">(You)</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>    
+      {% endif %}         
           
         <div id="prompt-section" class="section">
             <div class="account-info-section">
@@ -685,91 +750,128 @@
             document.body.classList.toggle("dark", theme === "dark");
             document.getElementById("theme-toggle").checked = theme === "dark";
         }
-
+    
         document.addEventListener("DOMContentLoaded", () => {
             const savedTheme = localStorage.getItem("theme") || "dark";
             applyTheme(savedTheme);
-
+    
             document.getElementById("theme-toggle").addEventListener("change", () => {
                 const newTheme = document.getElementById("theme-toggle").checked ? "dark" : "light";
                 localStorage.setItem("theme", newTheme);
                 applyTheme(newTheme);
             });
-
+    
             const accountLink = document.getElementById('account-link');
             const summarizerLink = document.getElementById('summarizer-link');
             const accountSection = document.getElementById('account-section');
             const summarizerSection = document.getElementById('summarizer-section');
             const promptLink = document.getElementById('prompt-link');
             const promptSection = document.getElementById('prompt-section');
-
-
+            const manageUsersLink = document.getElementById('manage-users-link');
+            const manageUsersSection = document.getElementById('manage-users-section');
+    
             // Restore section from localStorage
             const activeSection = localStorage.getItem("activeSection") || "account";
+    
             if (activeSection === "summarizer") {
                 summarizerLink.classList.add('active');
                 accountLink.classList.remove('active');
                 promptLink.classList.remove('active');
+                if (manageUsersLink) manageUsersLink.classList.remove('active');
+    
                 summarizerSection.classList.add('active');
                 accountSection.classList.remove('active');
                 promptSection.classList.remove('active');
+                if (manageUsersSection) manageUsersSection.classList.remove('active');
             } else if (activeSection === "prompt") {
                 promptLink.classList.add('active');
                 accountLink.classList.remove('active');
                 summarizerLink.classList.remove('active');
+                if (manageUsersLink) manageUsersLink.classList.remove('active');
+    
                 promptSection.classList.add('active');
                 accountSection.classList.remove('active');
                 summarizerSection.classList.remove('active');
+                if (manageUsersSection) manageUsersSection.classList.remove('active');
+            } else if (activeSection === "manage-users") {
+                if (manageUsersLink) manageUsersLink.classList.add('active');
+                accountLink.classList.remove('active');
+                summarizerLink.classList.remove('active');
+                promptLink.classList.remove('active');
+    
+                if (manageUsersSection) manageUsersSection.classList.add('active');
+                accountSection.classList.remove('active');
+                summarizerSection.classList.remove('active');
+                promptSection.classList.remove('active');
             } else {
                 accountLink.classList.add('active');
                 summarizerLink.classList.remove('active');
                 promptLink.classList.remove('active');
+                if (manageUsersLink) manageUsersLink.classList.remove('active');
+    
                 accountSection.classList.add('active');
                 summarizerSection.classList.remove('active');
                 promptSection.classList.remove('active');
+                if (manageUsersSection) manageUsersSection.classList.remove('active');
             }
-
-
+    
             // Set section on click
             accountLink.addEventListener('click', () => {
                 localStorage.setItem("activeSection", "account");
                 accountLink.classList.add('active');
                 summarizerLink.classList.remove('active');
                 promptLink.classList.remove('active');
-
+                if (manageUsersLink) manageUsersLink.classList.remove('active');
+    
                 accountSection.classList.add('active');
                 summarizerSection.classList.remove('active');
                 promptSection.classList.remove('active');
+                if (manageUsersSection) manageUsersSection.classList.remove('active');
             });
-
-
+    
             summarizerLink.addEventListener('click', () => {
                 localStorage.setItem("activeSection", "summarizer");
                 summarizerLink.classList.add('active');
                 accountLink.classList.remove('active');
                 promptLink.classList.remove('active');
-
+                if (manageUsersLink) manageUsersLink.classList.remove('active');
+    
                 summarizerSection.classList.add('active');
                 accountSection.classList.remove('active');
                 promptSection.classList.remove('active');
+                if (manageUsersSection) manageUsersSection.classList.remove('active');
             });
-
-
+    
             promptLink.addEventListener('click', () => {
                 localStorage.setItem("activeSection", "prompt");
                 promptLink.classList.add('active');
                 accountLink.classList.remove('active');
                 summarizerLink.classList.remove('active');
-
+                if (manageUsersLink) manageUsersLink.classList.remove('active');
+    
                 promptSection.classList.add('active');
                 accountSection.classList.remove('active');
                 summarizerSection.classList.remove('active');
+                if (manageUsersSection) manageUsersSection.classList.remove('active');
             });
-
-
-
+    
+            if (manageUsersLink) {
+                manageUsersLink.addEventListener('click', () => {
+                    localStorage.setItem("activeSection", "manage-users");
+                    manageUsersLink.classList.add('active');
+                    accountLink.classList.remove('active');
+                    summarizerLink.classList.remove('active');
+                    promptLink.classList.remove('active');
+    
+                    if (manageUsersSection) manageUsersSection.classList.add('active');
+                    accountSection.classList.remove('active');
+                    summarizerSection.classList.remove('active');
+                    promptSection.classList.remove('active');
+                });
+            }
         });
     </script>
+    
     <script>
         document.querySelectorAll(".eye-icon").forEach(icon => {
             icon.addEventListener("click", () => {
