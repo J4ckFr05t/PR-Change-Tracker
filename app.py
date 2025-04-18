@@ -247,7 +247,7 @@ def delete_prompt():
     prompt_name = request.form.get("prompt_name")
 
     # Find the prompt by name (assuming prompt_name is unique)
-    prompt_to_delete = Prompt.query.filter_by(prompt_name=prompt_name).first()
+    prompt_to_delete = Prompt.query.filter_by(user_id=current_user.id, prompt_name=prompt_name).first()
 
     if prompt_to_delete:
         db.session.delete(prompt_to_delete)
@@ -257,6 +257,27 @@ def delete_prompt():
         flash("Prompt not found or already deleted.", "danger")
     
     return redirect(url_for("user_dashboard"))
+
+@app.route("/delete_account", methods=["POST"])
+@login_required
+def delete_account():
+    try:
+        # Delete all prompts belonging to the user
+        Prompt.query.filter_by(user_id=current_user.id).delete()
+
+        # Then delete the user
+        user_email = current_user.email  # Save for feedback
+        db.session.delete(current_user)
+        db.session.commit()
+        logout_user()
+
+        flash(f"Account {user_email} has been deleted.", "success")
+        return redirect(url_for("signup"))
+    except Exception as e:
+        print("[Account Deletion Error]", e)
+        flash("An error occurred while deleting your account.", "danger")
+        return redirect(url_for("user_dashboard"))
+
 
 @app.route("/logout")
 @login_required

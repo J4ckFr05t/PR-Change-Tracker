@@ -597,6 +597,28 @@
           
               <button type="submit">Update Password</button>
             </form>
+
+            <!-- Delete Account -->
+            <div class="form-section">
+                <h3>Delete Account</h3>
+                <p style="color: #b00020;">
+                Deleting your account is irreversible. All your saved prompts and tokens will be permanently removed.
+                </p>
+                <button type="button" onclick="showDeleteConfirmation()" class="btn btn-danger">Delete My Account</button>
+            </div>
+            
+            <!-- Confirmation Modal -->
+            <div id="deleteModal" class="modal-overlay" style="display:none;">
+                <div class="modal-content">
+                <h3>Confirm Account Deletion</h3>
+                <p>Are you absolutely sure you want to delete your account? This action cannot be undone.</p>
+                <form action="/delete_account" method="POST">
+                    <button type="submit" class="btn btn-danger">Yes, Delete My Account</button>
+                    <button type="button" onclick="closeDeleteModal()" class="btn">Cancel</button>
+                </form>
+                </div>
+            </div>
+  
         </div>
       </div>
           
@@ -767,5 +789,13 @@
           });
         }, 3000);
       </script>
+    <script>
+        function showDeleteConfirmation() {
+        document.getElementById("deleteModal").style.display = "flex";
+        }
+        function closeDeleteModal() {
+        document.getElementById("deleteModal").style.display = "none";
+        }
+    </script>
 </body>
 </html>
