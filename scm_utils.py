@@ -1,6 +1,83 @@
 import requests
 import re
+import json
 from requests.auth import HTTPBasicAuth
+
+def generate_fake_diff(file_path, change_type):
+    """
+    Generate a fake diff based on file path and change type.
+    
+    Args:
+        file_path (str): Path of the file
+        change_type (str): Type of change ('add', 'edit', 'delete')
+        
+    Returns:
+        str: A fake git diff representation
+    """
+    # Remove leading slash if present
+    if file_path.startswith('/'):
+        file_path = file_path[1:]
+    
+    if change_type == "add":
+        return (f"diff --git a/{file_path} b/{file_path}\n"
+                f"index 0000000..1111111 100644\n"
+                f"--- /dev/null\n"
+                f"+++ b/{file_path}\n"
+                f"@@ -0,0 +1 @@\n"
+                f"+// New {file_path} content")
+    elif change_type == "edit":
+        return (f"diff --git a/{file_path} b/{file_path}\n"
+                f"index 2222222..3333333 100644\n"
+                f"--- a/{file_path}\n"
+                f"+++ b/{file_path}\n"
+                f"@@ -1,1 +1,1 @@\n"
+                f"-// Original {file_path} content\n"
+                f"+// Modified {file_path} content")
+    elif change_type == "delete":
+        return (f"diff --git a/{file_path} b/{file_path}\n"
+                f"index 4444444..0000000 100644\n"
+                f"--- a/{file_path}\n"
+                f"+++ /dev/null\n"
+                f"@@ -1,1 +0,0 @@\n"
+                f"-// Deleted {file_path} content")
+    else:
+        return f"// Unknown change type for {file_path}"
+
+def normalize_azure_to_github(azure_data):
+    """
+    Normalize Azure DevOps PR data to match GitHub PR data format.
+    
+    Args:
+        azure_data (dict): Azure DevOps PR data
+        
+    Returns:
+        dict: Normalized data in GitHub format
+    """
+    github_format = {
+        "title": azure_data["title"],
+        "author": azure_data["author"],
+        "state": "open" if azure_data["state"] == "active" else azure_data["state"],
+        "commits": []
+    }
+    
+    for commit in azure_data["commits"]:
+        # Generate a combined diff for all files in this commit
+        combined_diff = ""
+        for file_info in commit.get("files", []):
+            file_path = file_info["file"]
+            change_type = file_info["change_type"].lower()
+            
+            if combined_diff:
+                combined_diff += "\n"
+            combined_diff += generate_fake_diff(file_path, change_type)
+        
+        github_format["commits"].append({
+            "sha": commit["sha"],
+            "message": commit["message"],
+            "diff": combined_diff
+        })
+    
+    return github_format
 
 def get_github_pr_data(parsed, token):
     """
@@ -210,3 +287,58 @@ def get_bitbucket_pr_data(parsed, username, app_password):
         "state": pr_data.get("state"),
         "commits": commits
     }
+
+def get_azure_devops_pr_data(parsed, token):
+    organization = parsed["organization"]
+    project = parsed["project"]
+    repo_name = parsed["repo"]
+    pr_id = parsed["pr_id"]
+
+    headers = {'Content-Type': 'application/json'}
+    auth = HTTPBasicAuth('', token)
+
+    pr_url = f'https://dev.azure.com/{organization}/{project}/_apis/git/repositories/{repo_name}/pullrequests/{pr_id}?api-version=7.1-preview.1'
+    pr_resp = requests.get(pr_url, auth=auth, headers=headers)
+
+    if pr_resp.status_code != 200:
+        return {"error": f"Azure DevOps API Error: {pr_resp.status_code} - {pr_resp.text}"}
+
+    pr_data = pr_resp.json()
+    pr_info = {
+        "title": pr_data.get("title"),
+        "author": pr_data["createdBy"]["displayName"],
+        "state": pr_data["status"],
+        "commits": []
+    }
+
+    commits_url = f"https://dev.azure.com/{organization}/{project}/_apis/git/repositories/{repo_name}/pullRequests/{pr_id}/commits?api-version=7.1-preview.1"
+    commits_resp = requests.get(commits_url, auth=auth, headers=headers)
+    if commits_resp.status_code != 200:
+        return {"error": f"Azure DevOps API Error: {commits_resp.status_code} - {commits_resp.text}"}
+
+    for commit in commits_resp.json().get("value", []):
+        commit_id = commit["commitId"]
+        commit_message = commit["comment"]
+
+        # Changes (file paths and change types)
+        changes_url = f"https://dev.azure.com/{organization}/{project}/_apis/git/repositories/{repo_name}/commits/{commit_id}/changes?api-version=7.1-preview.1"
+        changes_resp = requests.get(changes_url, auth=auth, headers=headers)
+        file_changes = []
+        if changes_resp.status_code == 200:
+            changes_data = changes_resp.json()
+            for change in changes_data.get("changes", []):
+                file_changes.append({
+                    "file": change["item"]["path"],
+                    "change_type": change["changeType"]
+                })
+
+        pr_info["commits"].append({
+            "sha": commit_id,
+            "message": commit_message,
+            "files": file_changes,
+            "diff": ""
+        })
+
+    return normalize_azure_to_github(pr_info)
+
+

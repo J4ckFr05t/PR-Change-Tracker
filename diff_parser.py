@@ -105,7 +105,6 @@ def regroup_by_file_path(data, message_separator=" || ", line_separator="---"):
 # Main parsing function
 def parse_diff_by_commit(commits,  task=None, google_token=None, prompt_intro=None):
     result = []
-    print("[DEBUG] Google token in diff_parser:", google_token)
     for commit in commits:
         commit_entry = {
             "message": commit["message"],
