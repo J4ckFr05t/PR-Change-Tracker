@@ -3,82 +3,6 @@ import re
 import json
 from requests.auth import HTTPBasicAuth
 
-def generate_fake_diff(file_path, change_type):
-    """
-    Generate a fake diff based on file path and change type.
-    
-    Args:
-        file_path (str): Path of the file
-        change_type (str): Type of change ('add', 'edit', 'delete')
-        
-    Returns:
-        str: A fake git diff representation
-    """
-    # Remove leading slash if present
-    if file_path.startswith('/'):
-        file_path = file_path[1:]
-    
-    if change_type == "add":
-        return (f"diff --git a/{file_path} b/{file_path}\n"
-                f"index 0000000..1111111 100644\n"
-                f"--- /dev/null\n"
-                f"+++ b/{file_path}\n"
-                f"@@ -0,0 +1 @@\n"
-                f"+// New {file_path} content")
-    elif change_type == "edit":
-        return (f"diff --git a/{file_path} b/{file_path}\n"
-                f"index 2222222..3333333 100644\n"
-                f"--- a/{file_path}\n"
-                f"+++ b/{file_path}\n"
-                f"@@ -1,1 +1,1 @@\n"
-                f"-// Original {file_path} content\n"
-                f"+// Modified {file_path} content")
-    elif change_type == "delete":
-        return (f"diff --git a/{file_path} b/{file_path}\n"
-                f"index 4444444..0000000 100644\n"
-                f"--- a/{file_path}\n"
-                f"+++ /dev/null\n"
-                f"@@ -1,1 +0,0 @@\n"
-                f"-// Deleted {file_path} content")
-    else:
-        return f"// Unknown change type for {file_path}"
-
-def normalize_azure_to_github(azure_data):
-    """
-    Normalize Azure DevOps PR data to match GitHub PR data format.
-    
-    Args:
-        azure_data (dict): Azure DevOps PR data
-        
-    Returns:
-        dict: Normalized data in GitHub format
-    """
-    github_format = {
-        "title": azure_data["title"],
-        "author": azure_data["author"],
-        "state": "open" if azure_data["state"] == "active" else azure_data["state"],
-        "commits": []
-    }
-    
-    for commit in azure_data["commits"]:
-        # Generate a combined diff for all files in this commit
-        combined_diff = ""
-        for file_info in commit.get("files", []):
-            file_path = file_info["file"]
-            change_type = file_info["change_type"].lower()
-            
-            if combined_diff:
-                combined_diff += "\n"
-            combined_diff += generate_fake_diff(file_path, change_type)
-        
-        github_format["commits"].append({
-            "sha": commit["sha"],
-            "message": commit["message"],
-            "diff": combined_diff
-        })
-    
-    return github_format
-
 def get_github_pr_data(parsed, token):
     """
     Fetch PR or compare data from GitHub depending on the parsed input.
@@ -339,6 +263,6 @@ def get_azure_devops_pr_data(parsed, token):
             "diff": ""
         })
 
-    return normalize_azure_to_github(pr_info)
+    return pr_info
 
 
