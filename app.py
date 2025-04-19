@@ -13,6 +13,8 @@ import io
 import pandas as pd
 import json
 from urllib.parse import urlparse, unquote
+from utils.encryption import encrypt_token, decrypt_token
+
 
 app = Flask(__name__)
 
@@ -38,7 +40,61 @@ class User(UserMixin, db.Model):
     bitbucket_username = db.Column(db.String(255))
     bitbucket_app_password = db.Column(db.String(255))
     azdevops_api_token = db.Column(db.String(255))
+    _github_api_token = db.Column("github_api_token", db.String(255))
+    _google_api_token = db.Column("google_api_token", db.String(255))
+    _gitlab_api_token = db.Column("gitlab_api_token", db.String(255))
+    _bitbucket_username = db.Column("bitbucket_username", db.String(255))
+    _bitbucket_app_password = db.Column("bitbucket_app_password", db.String(255))
+    _azdevops_api_token = db.Column("azdevops_api_token", db.String(255))
     locked = db.Column(db.Boolean, default=False)
+
+    @property
+    def github_api_token(self):
+        return decrypt_token(self._github_api_token) if self._github_api_token else None
+
+    @github_api_token.setter
+    def github_api_token(self, value):
+        self._github_api_token = encrypt_token(value)
+
+    @property
+    def google_api_token(self):
+        return decrypt_token(self._google_api_token) if self._google_api_token else None
+
+    @google_api_token.setter
+    def google_api_token(self, value):
+        self._google_api_token = encrypt_token(value)
+
+    @property
+    def gitlab_api_token(self):
+        return decrypt_token(self._gitlab_api_token) if self._gitlab_api_token else None
+
+    @gitlab_api_token.setter
+    def gitlab_api_token(self, value):
+        self._gitlab_api_token = encrypt_token(value)
+
+    @property
+    def bitbucket_username(self):
+        return decrypt_token(self._bitbucket_username) if self._bitbucket_username else None
+
+    @bitbucket_username.setter
+    def bitbucket_username(self, value):
+        self._bitbucket_username = encrypt_token(value)
+
+    @property
+    def bitbucket_app_password(self):
+        return decrypt_token(self._bitbucket_app_password) if self._bitbucket_app_password else None
+
+    @bitbucket_app_password.setter
+    def bitbucket_app_password(self, value):
+        self._bitbucket_app_password = encrypt_token(value)
+
+    @property
+    def azdevops_api_token(self):
+        return decrypt_token(self._azdevops_api_token) if self._azdevops_api_token else None
+
+    @azdevops_api_token.setter
+    def azdevops_api_token(self, value):
+        self._azdevops_api_token = encrypt_token(value)
 
     def __repr__(self):
         return f"<User {self.email}>"
