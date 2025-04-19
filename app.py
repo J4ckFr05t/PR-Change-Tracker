@@ -693,7 +693,7 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all()  # Automatically create tables if they don't exist
 
-        admin_email = "admin@test.com"
+        admin_email = "admin"
         existing_admin = User.query.filter_by(email=admin_email).first()
         if not existing_admin:
             admin_user = User(

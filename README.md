@@ -45,8 +45,14 @@ git clone git@github.com:J4ckFr05t/DiffSage.git
 cd DiffSage
 ```
 ---
+### 2. Setup Environment Variables (.env)
 
-### 2. Option A: Local Run (with Python)
+```bash
+ENCRYPTION_KEY=<add your key here>
+```
+---
+
+### 3. Option A: Local Run (with Python)
 
 #### Create & activate virtual environment (optional but recommended)
 
@@ -101,7 +107,7 @@ App runs at: [http://localhost:3000](http://localhost:3000)
 
 ---
 
-### 2. Option B: Run with Docker 🐳
+### 3. Option B: Run with Docker 🐳
 
 #### Build Docker image
 
@@ -115,26 +121,33 @@ docker compose up -d --build
 
 ## 🚀 Usage Workflow
 
-1. **Sign Up / Log In**
+1. **Admins Login**
+   - Initial Login using admin:admin (email:password).
+   - A new password needs to be setup to proceed.
+
+2. **Sign Up / Log In**
    - Navigate to `/signup` to create an account.
    - Already registered? Go to `/login` and sign in with your email and password.
 
-2. **Access the Dashboard**
+3. **Access the Dashboard**
    - Upon login, you're redirected to `/dashboard`, where you’ll find:
      - `Account Info` section
-     - `GitHub PR Summarizer` section
+     - `GitDecode` section
 
-3. **Update API Tokens**
+4. **Update API Tokens**
    - Under the `Account Info` tab:
-     - Add your **GitHub Personal Access Token** (required for PR access).
-     - Add your **Google API Token** (if used for summarization output).
+     - Add your **GitHub Personal Access Token** (required for Github PR/compare access).
+     - Add your **GitLab Personal Access Token** (required for GitLab MR access).
+     - Add your **BitBucket Username and App Password** (required for Bitbucket PR access).
+     - Add your **Azure DevOps API Token** (required for Azure DevOps PR access).
+     - Add your **Google API Token** (Required for GitDecode summarization output).
      - Submit the forms to update tokens securely.
 
-4. **Change Password (optional)**
+5. **Change Password (optional)**
    - You can change your password directly from the dashboard under the same section.
 
-5. **Summarize a Pull Request**
-   - Switch to the **GitHub PR Summarizer** section.
+6. **Summarize a Pull Request**
+   - Switch to the **GitDecode** section.
    - Enter a PR URL (e.g. `https://github.com/user/repo/pull/123`).
    - The app:
      - Parses the PR
@@ -142,39 +155,9 @@ docker compose up -d --build
      - Shows progress via a dynamic bar
    - Once done, a detailed summary is shown and can be downloaded as an Excel file.
 
-6. **Logout**
+7. **Logout**
    - Click the "Logout" link in the sidebar.
    - A flash message will confirm successful logout.
----
-
-## 📆 Folder Structure
-
-```
-DiffSage/
-├── app.py                   # Main Flask application with routes and logic
-├── celery_worker.py         # Celery worker setup for async tasks
-├── tasks.py                 # Celery task definitions
-├── github_utils.py          # Utilities for interacting with GitHub API
-├── requirements.txt         # Python dependencies
-├── Dockerfile               # Docker image configuration
-├── docker-compose.yml       # Multi-container orchestration (Flask, Redis, etc.)
-├── README.md                # Project documentation
-├── templates/               # Jinja2 HTML templates
-│   ├── login.html           # Login page
-│   ├── signup.html          # Signup page
-│   ├── user.html            # Authenticated user dashboard
-│   └── components/
-│       └── pr_summarizer.html  # Component for PR summarization UI
-├── static/                  # Static files (CSS, JS, assets)
-│   └── (your static files here)
-```
-
----
-
-## Common Mistake
-If you see the following, it likely means the .env file hasn’t been set up correctly.
-
-![alt text](static/common-error.png)
 ---
 
 ## 👨‍💼 Author
