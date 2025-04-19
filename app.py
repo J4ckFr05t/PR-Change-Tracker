@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, send_file, jsonify, redirect,
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from scm_utils import get_github_pr_data, get_gitlab_pr_data, get_bitbucket_pr_data
+from scm_utils import get_github_pr_data, get_gitlab_pr_data, get_bitbucket_pr_data, get_azure_devops_pr_data
 import google.generativeai as genai
 from celery.result import AsyncResult
 from tasks import analyze_pr_task
@@ -12,6 +12,9 @@ import re
 import io
 import pandas as pd
 import json
+from urllib.parse import urlparse, unquote
+from utils.encryption import encrypt_token, decrypt_token
+
 
 app = Flask(__name__)
 
@@ -36,7 +39,62 @@ class User(UserMixin, db.Model):
     gitlab_api_token = db.Column(db.String(255))
     bitbucket_username = db.Column(db.String(255))
     bitbucket_app_password = db.Column(db.String(255))
+    azdevops_api_token = db.Column(db.String(255))
+    _github_api_token = db.Column("github_api_token", db.String(255))
+    _google_api_token = db.Column("google_api_token", db.String(255))
+    _gitlab_api_token = db.Column("gitlab_api_token", db.String(255))
+    _bitbucket_username = db.Column("bitbucket_username", db.String(255))
+    _bitbucket_app_password = db.Column("bitbucket_app_password", db.String(255))
+    _azdevops_api_token = db.Column("azdevops_api_token", db.String(255))
     locked = db.Column(db.Boolean, default=False)
+
+    @property
+    def github_api_token(self):
+        return decrypt_token(self._github_api_token) if self._github_api_token else None
+
+    @github_api_token.setter
+    def github_api_token(self, value):
+        self._github_api_token = encrypt_token(value)
+
+    @property
+    def google_api_token(self):
+        return decrypt_token(self._google_api_token) if self._google_api_token else None
+
+    @google_api_token.setter
+    def google_api_token(self, value):
+        self._google_api_token = encrypt_token(value)
+
+    @property
+    def gitlab_api_token(self):
+        return decrypt_token(self._gitlab_api_token) if self._gitlab_api_token else None
+
+    @gitlab_api_token.setter
+    def gitlab_api_token(self, value):
+        self._gitlab_api_token = encrypt_token(value)
+
+    @property
+    def bitbucket_username(self):
+        return decrypt_token(self._bitbucket_username) if self._bitbucket_username else None
+
+    @bitbucket_username.setter
+    def bitbucket_username(self, value):
+        self._bitbucket_username = encrypt_token(value)
+
+    @property
+    def bitbucket_app_password(self):
+        return decrypt_token(self._bitbucket_app_password) if self._bitbucket_app_password else None
+
+    @bitbucket_app_password.setter
+    def bitbucket_app_password(self, value):
+        self._bitbucket_app_password = encrypt_token(value)
+
+    @property
+    def azdevops_api_token(self):
+        return decrypt_token(self._azdevops_api_token) if self._azdevops_api_token else None
+
+    @azdevops_api_token.setter
+    def azdevops_api_token(self, value):
+        self._azdevops_api_token = encrypt_token(value)
 
     def __repr__(self):
         return f"<User {self.email}>"
@@ -258,6 +316,20 @@ def update_bitbucket_credentials():
     flash("Bitbucket credentials updated successfully!", "success")
     return redirect(url_for("user_dashboard"))
 
+@app.route("/update_azdevops_token", methods=["POST"])
+@login_required
+def update_azdevops_token():
+    token = request.form.get("azdevops_api_token")
+
+    if not token or len(token) < 10:
+        flash("Invalid Azure DevOps token.", "error")
+        return redirect(url_for("user_dashboard"))
+
+    current_user.azdevops_api_token = token
+    db.session.commit()
+    flash("Azure DevOps token updated successfully!", "success")
+    return redirect(url_for("user_dashboard"))
+
 
 @app.route("/summarize", methods=["POST"])
 @login_required
@@ -282,9 +354,9 @@ def summarize():
     if not pr_url:
         return jsonify({"error": "Missing PR URL"}), 400
     
-    if not current_user.github_api_token or not current_user.google_api_token:
+    if not current_user.google_api_token:
         return jsonify({
-            "error": "Both GitHub and Google API tokens are required. Please set them up in your Account Info."
+            "error": "Google API tokens are required. Please set them up in your Account Info."
         }), 400
     
     if not validate_google_token(current_user.google_api_token):
@@ -298,6 +370,7 @@ def summarize():
             user_token = current_user.github_api_token
             parsed = parse_github_url(pr_url)
             pr_data = get_github_pr_data(parsed, user_token)
+            print(pr_data)
             if "error" in pr_data:
                 print(f"[ERROR] GitHub API returned an error: {pr_data['error']}")
                 return jsonify({"error": "There was an issue with your GitHub token. Please make sure your token is correct and try again."}), 400  # Stop execution and return the error
@@ -316,6 +389,13 @@ def summarize():
             if "error" in pr_data:
                 print(f"[ERROR] GitHub API returned an error: {pr_data['error']}")
                 return jsonify({"error": "There was an issue with your Bitbucket Username or App Password. Please make sure your token is correct and try again."}), 400  # Stop execution and return the error
+        elif selected_platform == "azdevops":
+            user_token = current_user.azdevops_api_token
+            parsed = parse_azure_devops_url(pr_url)
+            pr_data = get_azure_devops_pr_data(parsed, user_token)
+            if "error" in pr_data:
+                #print(f"[ERROR] Azure DevOps API returned an error: {pr_data['error']}")
+                return jsonify({"error": "There was an issue with your Azure DevOps API Token. Please make sure your token is correct and try again."}), 400  # Stop execution and return the error
         else:
             return jsonify({"error": "Unsupported platform selected."}), 400
 
@@ -572,12 +652,48 @@ def parse_bitbucket_url(url):
 
     raise ValueError("Unsupported or invalid Bitbucket Pull Request URL.")
 
+def parse_azure_devops_url(url):
+    """
+    Parses an Azure DevOps Pull Request URL and returns a dict with type info.
+    Supports format:
+    https://dev.azure.com/{organization}/{project}/_git/{repo}/pullrequest/{pr_id}
+    or
+    https://dev.azure.com/{organization}/{project}/_apis/git/repositories/{repo}/pullRequests/{pr_id}
+    """
+    url = url.strip()
+    parsed = urlparse(url)
+    path = unquote(parsed.path)  # Decode any URL-encoded characters
+    path_parts = path.strip("/").split("/")
+
+    if "pullrequest" in path_parts:
+        try:
+            org = path_parts[0]
+            project = path_parts[1]
+            if "_apis" in path_parts:
+                repo = path_parts[5]
+                pr_id = path_parts[7]
+            else:
+                repo = path_parts[3]
+                pr_id = path_parts[5]
+
+            return {
+                "url": url,
+                "type": "pr",
+                "organization": org,
+                "project": project,
+                "repo": repo,
+                "pr_id": int(pr_id)
+            }
+        except (IndexError, ValueError):
+            raise ValueError("Malformed Azure DevOps PR URL structure.")
+
+    raise ValueError("Unsupported or invalid Azure DevOps PR URL.")
 
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()  # Automatically create tables if they don't exist
 
-        admin_email = "admin@test.com"
+        admin_email = "admin"
         existing_admin = User.query.filter_by(email=admin_email).first()
         if not existing_admin:
             admin_user = User(

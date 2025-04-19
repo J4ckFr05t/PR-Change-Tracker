@@ -1,4 +1,4 @@
-from unidiff import PatchSet
+from unidiff import PatchSet, UnidiffParseError
 from io import StringIO
 import json
 import copy
@@ -103,40 +103,72 @@ def regroup_by_file_path(data, message_separator=" || ", line_separator="---"):
     return list(grouped.values())
 
 # Main parsing function
-def parse_diff_by_commit(commits,  task=None, google_token=None, prompt_intro=None):
+from unidiff import PatchSet, UnidiffParseError
+
+def parse_diff_by_commit(commits, task=None, google_token=None, prompt_intro=None):
     result = []
-    print("[DEBUG] Google token in diff_parser:", google_token)
     for commit in commits:
         commit_entry = {
             "message": commit["message"],
             "files_changed": []
         }
 
-        patch_set = PatchSet(StringIO(commit["diff"]))
-        for file in patch_set:
-            added = [line.value.strip() for hunk in file for line in hunk if line.is_added]
-            removed = [line.value.strip() for hunk in file for line in hunk if line.is_removed]
+        # Check if diff is present
+        if not commit.get("diff"):
+            # Azure-style metadata-only commit
+            for file_info in commit.get("files", []):
+                file_path = file_info["file"].lstrip("/")
+                raw_change = file_info["change_type"].lower()
+                change_type_map = {
+                    "add": "added",
+                    "edit": "modified",
+                    "delete": "deleted"
+                }
+                change_type = change_type_map.get(raw_change, "modified")
+                is_new_file = change_type == "add"
+                
+                # Placeholder content (optional: refine for better summary prompts)
+                added_lines = ["// No diff available (Azure DevOps)"] if change_type != "delete" else []
+                removed_lines = ["// No diff available (Azure DevOps)"] if change_type != "add" else []
 
-            if file.is_added_file:
-                change_type = "added"
-            elif file.is_removed_file:
-                change_type = "deleted"
-            else:
-                change_type = "modified"
+                commit_entry["files_changed"].append({
+                    "file_path": file_path,
+                    "change_type": change_type,
+                    "added_lines": added_lines,
+                    "removed_lines": removed_lines,
+                    "is_new_file": is_new_file
+                })
+        else:
+            # GitHub/GitLab/Bitbucket-style commit with real diff
+            try:
+                patch_set = PatchSet(StringIO(commit["diff"]))
+                for file in patch_set:
+                    added = [line.value.strip() for hunk in file for line in hunk if line.is_added]
+                    removed = [line.value.strip() for hunk in file for line in hunk if line.is_removed]
 
-            is_new_file = file.is_added_file and len(removed) == 0 and len(added) > 0
+                    if file.is_added_file:
+                        change_type = "added"
+                    elif file.is_removed_file:
+                        change_type = "deleted"
+                    else:
+                        change_type = "modified"
 
-            commit_entry["files_changed"].append({
-                "file_path": file.path,
-                "change_type": change_type,
-                "added_lines": added,
-                "removed_lines": removed,
-                "is_new_file": is_new_file
-            })
+                    is_new_file = file.is_added_file and len(removed) == 0 and len(added) > 0
+
+                    commit_entry["files_changed"].append({
+                        "file_path": file.path,
+                        "change_type": change_type,
+                        "added_lines": added,
+                        "removed_lines": removed,
+                        "is_new_file": is_new_file
+                    })
+            except UnidiffParseError as e:
+                print(f"[WARN] Failed to parse diff for commit {commit.get('sha')}: {e}")
+                # Optional: fallback logic here
 
         result.append(commit_entry)
 
-    # Flatten to per-file level
+    # Flatten to per-file level and group
     exploded = []
     for entry in result:
         for file_change in entry.get('files_changed', []):
@@ -145,7 +177,6 @@ def parse_diff_by_commit(commits,  task=None, google_token=None, prompt_intro=No
                 'files_changed': [file_change]  # single-element list
             })
 
-    # Sort based on custom priority
     change_type_priority = {
         'deleted': 0,
         'added': 1,
@@ -153,22 +184,17 @@ def parse_diff_by_commit(commits,  task=None, google_token=None, prompt_intro=No
     }
     exploded.sort(key=lambda e: change_type_priority.get(e['files_changed'][0]['change_type'], 99))
 
-    # Group by file path
     grouped_data = regroup_by_file_path(exploded)
 
     print("Number of Files to be process:", len(grouped_data))
-    file_count = len(grouped_data)
 
-    # Add Gemini summaries
     for index, item in enumerate(grouped_data, start=1):
         if task:
-            progress_meta = {
+            task.update_state(state='PROGRESS', meta={
                 'current': index,
-                'total': file_count,
-                'status': f'Processed {index} of {file_count}'
-            }
-            print("Progress update:", progress_meta)
-            task.update_state(state='PROGRESS', meta=progress_meta)
+                'total': len(grouped_data),
+                'status': f'Processed {index} of {len(grouped_data)}'
+            })
 
         file_change = item["files_changed"][0]
         item["summary"] = summarize_change_with_retry(
@@ -180,9 +206,14 @@ def parse_diff_by_commit(commits,  task=None, google_token=None, prompt_intro=No
         )
 
         if index % 15 == 0:
-            print(f"Processed {index}/{file_count} items. Sleeping for 60 seconds to avoid hitting rate limits.")
+            print(f"Processed {index}/{len(grouped_data)} items. Sleeping for 60 seconds to avoid hitting rate limits.")
             time.sleep(60)
         else:
-            print(f"Processed {index}/{file_count} items.")
+            print(f"Processed {index}/{len(grouped_data)} items.")
+
+    print(grouped_data)
 
     return grouped_data
+
+
+

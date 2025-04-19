@@ -658,6 +658,15 @@
                 <input type="password" name="bitbucket_app_password" placeholder="bitbucket_app_password" required />
                 <button type="submit">Update Bitbucket Credentials</button>
             </form>
+            
+            <!-- Update GitLab API Token -->
+            <form action="/update_azdevops_token" method="post" class="form-section">
+                <h3>Update Azure DevOps API Token</h3>
+                <label>Azure DevOps API Token</label>
+                <input type="password" name="azdevops_api_token" placeholder="EeBg-..." required />
+                <button type="submit">Update Azure DevOps API Token</button>
+            </form>
+
             <!-- Change Password -->
             <form action="/update_password" method="post" class="form-section">
               <h3>Change Password</h3>

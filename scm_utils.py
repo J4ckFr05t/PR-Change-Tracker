@@ -1,5 +1,6 @@
 import requests
 import re
+import json
 from requests.auth import HTTPBasicAuth
 
 def get_github_pr_data(parsed, token):
@@ -210,3 +211,58 @@ def get_bitbucket_pr_data(parsed, username, app_password):
         "state": pr_data.get("state"),
         "commits": commits
     }
+
+def get_azure_devops_pr_data(parsed, token):
+    organization = parsed["organization"]
+    project = parsed["project"]
+    repo_name = parsed["repo"]
+    pr_id = parsed["pr_id"]
+
+    headers = {'Content-Type': 'application/json'}
+    auth = HTTPBasicAuth('', token)
+
+    pr_url = f'https://dev.azure.com/{organization}/{project}/_apis/git/repositories/{repo_name}/pullrequests/{pr_id}?api-version=7.1-preview.1'
+    pr_resp = requests.get(pr_url, auth=auth, headers=headers)
+
+    if pr_resp.status_code != 200:
+        return {"error": f"Azure DevOps API Error: {pr_resp.status_code} - {pr_resp.text}"}
+
+    pr_data = pr_resp.json()
+    pr_info = {
+        "title": pr_data.get("title"),
+        "author": pr_data["createdBy"]["displayName"],
+        "state": pr_data["status"],
+        "commits": []
+    }
+
+    commits_url = f"https://dev.azure.com/{organization}/{project}/_apis/git/repositories/{repo_name}/pullRequests/{pr_id}/commits?api-version=7.1-preview.1"
+    commits_resp = requests.get(commits_url, auth=auth, headers=headers)
+    if commits_resp.status_code != 200:
+        return {"error": f"Azure DevOps API Error: {commits_resp.status_code} - {commits_resp.text}"}
+
+    for commit in commits_resp.json().get("value", []):
+        commit_id = commit["commitId"]
+        commit_message = commit["comment"]
+
+        # Changes (file paths and change types)
+        changes_url = f"https://dev.azure.com/{organization}/{project}/_apis/git/repositories/{repo_name}/commits/{commit_id}/changes?api-version=7.1-preview.1"
+        changes_resp = requests.get(changes_url, auth=auth, headers=headers)
+        file_changes = []
+        if changes_resp.status_code == 200:
+            changes_data = changes_resp.json()
+            for change in changes_data.get("changes", []):
+                file_changes.append({
+                    "file": change["item"]["path"],
+                    "change_type": change["changeType"]
+                })
+
+        pr_info["commits"].append({
+            "sha": commit_id,
+            "message": commit_message,
+            "files": file_changes,
+            "diff": ""
+        })
+
+    return pr_info
+
+
