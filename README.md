@@ -8,7 +8,7 @@
 
 Here’s a demo:
 
-![DiffSage Demo](static/demo.mp4)
+![DiffSage Demo](static/demo.gif)
 
 ---
 
